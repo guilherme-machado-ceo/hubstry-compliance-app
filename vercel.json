@@ -4,79 +4,10 @@
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install",
   "framework": "vite",
-  "env": {
-    "DATABASE_URL": {
-      "description": "MySQL database connection string"
-    },
-    "JWT_SECRET": {
-      "description": "JWT secret for session signing (min 32 characters)"
-    },
-    "VITE_APP_ID": {
-      "description": "Manus OAuth application ID"
-    },
-    "OAUTH_SERVER_URL": {
-      "description": "Manus OAuth server URL"
-    },
-    "VITE_OAUTH_PORTAL_URL": {
-      "description": "Manus OAuth portal URL for login"
-    },
-    "OWNER_OPEN_ID": {
-      "description": "Owner's Manus Open ID"
-    },
-    "OWNER_NAME": {
-      "description": "Owner's name"
-    },
-    "STRIPE_SECRET_KEY": {
-      "description": "Stripe secret API key"
-    },
-    "STRIPE_WEBHOOK_SECRET": {
-      "description": "Stripe webhook signing secret"
-    },
-    "VITE_STRIPE_PUBLISHABLE_KEY": {
-      "description": "Stripe publishable API key"
-    },
-    "STRIPE_PRICE_PRO": {
-      "description": "Stripe price ID for Pro plan"
-    },
-    "STRIPE_PRICE_ENTERPRISE": {
-      "description": "Stripe price ID for Enterprise plan"
-    },
-    "BUILT_IN_FORGE_API_URL": {
-      "description": "Manus built-in APIs URL"
-    },
-    "BUILT_IN_FORGE_API_KEY": {
-      "description": "Manus built-in APIs key"
-    },
-    "VITE_FRONTEND_FORGE_API_URL": {
-      "description": "Frontend Manus APIs URL"
-    },
-    "VITE_FRONTEND_FORGE_API_KEY": {
-      "description": "Frontend Manus APIs key"
-    },
-    "VITE_APP_TITLE": {
-      "description": "Application title"
-    },
-    "VITE_APP_LOGO": {
-      "description": "Application logo URL"
-    },
-    "VITE_ANALYTICS_ENDPOINT": {
-      "description": "Analytics endpoint (optional)"
-    },
-    "VITE_ANALYTICS_WEBSITE_ID": {
-      "description": "Analytics website ID (optional)"
-    }
-  },
   "builds": [
     {
-      "src": "server/_core/index.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "client/vite.config.ts",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/client"
-      }
+      "src": "package.json",
+      "use": "@vercel/node-esbuild"
     }
   ],
   "routes": [
@@ -86,15 +17,9 @@
     },
     {
       "src": "/(.*)",
-      "dest": "dist/client/index.html"
+      "dest": "/client/index.html"
     }
   ],
-  "functions": {
-    "server/_core/index.ts": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -116,13 +41,6 @@
           "value": "strict-origin-when-cross-origin"
         }
       ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/docs",
-      "destination": "https://docs.hubstry.com",
-      "permanent": false
     }
   ]
 }
