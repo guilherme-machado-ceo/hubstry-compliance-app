@@ -34,11 +34,11 @@
 - [ ] Comparação com padrões ISO/LGPD (em progresso)
 
 ## Fase 6: Integração Stripe
-- [ ] Configurar Stripe API
-- [ ] Criar checkout para planos Pro e Enterprise
-- [ ] Gerenciar subscrições
-- [ ] Atualizar limites de scans por plano
-- [ ] Webhook de pagamento
+- [x] Configurar Stripe API
+- [x] Criar checkout para planos Pro e Enterprise
+- [x] Gerenciar subscrições
+- [x] Atualizar limites de scans por plano
+- [ ] Webhook de pagamento (em progresso)
 
 ## Fase 7: PDF e Notificações
 - [ ] Exportar relatórios em PDF

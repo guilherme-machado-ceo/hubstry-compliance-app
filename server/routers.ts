@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { scanUrl } from "./scanner";
+import { stripeRouter } from "./stripe-router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -24,6 +25,8 @@ export const appRouter = router({
       return db.getOrCreateSubscription(ctx.user.id);
     }),
   }),
+
+  stripe: stripeRouter,
 
   audits: router({
     list: protectedProcedure.query(async ({ ctx }) => {
