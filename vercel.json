@@ -3,5 +3,6 @@
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install",
-  "framework": "vite"
+  "framework": "vite",
+  "outputDirectory": "dist"
 }
