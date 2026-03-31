@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, subscriptions, audits, violations, Audit, Violation } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,133 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Subscription queries
+ */
+export async function getOrCreateSubscription(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, userId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  // Create default free subscription
+  await db.insert(subscriptions).values({
+    userId,
+    plan: "free",
+    scansPerMonth: 3,
+    scansUsedThisMonth: 0,
+  });
+
+  const result = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, userId))
+    .limit(1);
+
+  return result[0];
+}
+
+export async function updateSubscription(
+  userId: number,
+  updates: Partial<typeof subscriptions.$inferInsert>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(subscriptions)
+    .set(updates)
+    .where(eq(subscriptions.userId, userId));
+}
+
+/**
+ * Audit queries
+ */
+export async function createAudit(
+  userId: number,
+  url: string,
+  domain: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(audits).values({
+    userId,
+    url,
+    domain,
+    status: "pending",
+  });
+
+  return result;
+}
+
+export async function getAuditById(auditId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db
+    .select()
+    .from(audits)
+    .where(eq(audits.id, auditId))
+    .limit(1);
+
+  return result[0];
+}
+
+export async function getUserAudits(userId: number, limit = 20, offset = 0) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(audits)
+    .where(eq(audits.userId, userId))
+    .orderBy(desc(audits.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function updateAudit(
+  auditId: number,
+  updates: Partial<typeof audits.$inferInsert>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(audits).set(updates).where(eq(audits.id, auditId));
+}
+
+/**
+ * Violation queries
+ */
+export async function createViolation(
+  auditId: number,
+  violation: Omit<typeof violations.$inferInsert, 'auditId'>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.insert(violations).values({
+    ...violation,
+    auditId,
+  });
+}
+
+export async function getAuditViolations(auditId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db
+    .select()
+    .from(violations)
+    .where(eq(violations.auditId, auditId))
+    .orderBy(violations.severity);
+}
