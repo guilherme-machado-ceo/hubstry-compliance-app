@@ -1,0 +1,17 @@
+# Estrutura antiga — ignorar no Vercel
+client/
+server/
+shared/
+drizzle/
+.manus/
+
+# Config files da estrutura antiga
+vite.config.ts
+drizzle.config.ts
+
+# Patches e outros
+patches/
+
+# Docs e testes
+README.md
+todo.md
