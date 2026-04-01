@@ -1,19 +1,59 @@
-import { defineConfig } from "vitest/config";
-import path from "path";
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
-const templateRoot = path.resolve(import.meta.dirname);
+const templateRoot = path.resolve(import.meta.dirname)
 
 export default defineConfig({
+  plugins: [react()],
   root: templateRoot,
   resolve: {
     alias: {
-      "@": path.resolve(templateRoot, "client", "src"),
-      "@shared": path.resolve(templateRoot, "shared"),
-      "@assets": path.resolve(templateRoot, "attached_assets"),
+      '@': path.resolve(templateRoot, '.'),
+      '@/app': path.resolve(templateRoot, 'app'),
+      '@/components': path.resolve(templateRoot, 'components'),
+      '@/lib': path.resolve(templateRoot, 'lib'),
+      '@/hooks': path.resolve(templateRoot, 'hooks'),
+      '@/types': path.resolve(templateRoot, 'types'),
+      '@/utils': path.resolve(templateRoot, 'utils'),
+      '@/prisma': path.resolve(templateRoot, 'prisma'),
     },
   },
   test: {
-    environment: "node",
-    include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    // Ambiente de teste
+    environment: 'jsdom',
+    globals: true,
+
+    // Setup
+    setupFiles: ['./vitest.setup.ts'],
+
+    // Coverage
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        '.next/',
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        '**/types/**',
+      ],
+      lines: 70,
+      functions: 70,
+      branches: 70,
+      statements: 70,
+    },
+
+    // Include/Exclude
+    include: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    exclude: ['node_modules', 'dist', '.next', '.git'],
+
+    // Reporters
+    reporters: ['verbose'],
+
+    // Máximo de workers
+    threads: true,
+    isolate: true,
   },
-});
+})
