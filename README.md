@@ -243,12 +243,33 @@ Contribuições são bem-vindas! Por favor:
 
 Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
 
-## 📧 Suporte
+## 📧 Contato
 
-Para suporte, entre em contato através de:
-- Email: support@hubstry.com
-- Issues: https://github.com/seu-usuario/hubstry-compliance-app/issues
-- Documentação: https://docs.hubstry.com
+Para suporte ou dúvidas, entre em contato:
+- Email: guilhermemachado@hubstry.onmicrosoft.com
+
+## 🔄 Plano de Upgrade do Repositório
+
+### Curto Prazo (1-2 meses)
+- [ ] Melhorar cobertura de testes (target: 80%)
+- [ ] Implementar logging centralizado
+- [ ] Adicionar monitoramento de erros em produção
+- [ ] Documentação de API tRPC
+
+### Médio Prazo (3-6 meses)
+- [ ] Migração para TypeScript strict mode
+- [ ] Refatoração de componentes React para padrões mais modernos
+- [ ] Implementação de cache distribuído
+- [ ] Dashboard de administração
+- [ ] Relatórios de conformidade em PDF
+
+### Longo Prazo (6+ meses)
+- [ ] API pública REST para integrações
+- [ ] Suporte a múltiplos idiomas
+- [ ] Mobile app (iOS/Android)
+- [ ] Sistema de notifications em tempo real
+- [ ] Machine learning para detecção de padrões
+- [ ] CLI para auditorias automatizadas
 
 ---
 
