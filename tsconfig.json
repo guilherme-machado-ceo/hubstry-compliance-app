@@ -11,14 +11,15 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
+      "@/*": ["./client/src/*"],
       "@/app/*": ["./app/*"],
       "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
       "@/hooks/*": ["./hooks/*"],
       "@/types/*": ["./types/*"],
       "@/utils/*": ["./utils/*"],
-      "@/prisma/*": ["./prisma/*"]
+      "@/prisma/*": ["./prisma/*"],
+      "@shared/*": ["./shared/*"]
     },
 
     // Emissão
@@ -54,18 +55,12 @@
     "noUnusedParameters": true,
     "useDefineForClassFields": true,
 
-    // Next.js
-    "incremental": true,
+    // Vite
     "skipLibCheck": true,
-    "types": ["node", "vitest/globals"],
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"],
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"],
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs"
