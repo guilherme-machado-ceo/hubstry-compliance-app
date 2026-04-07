@@ -34,7 +34,6 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'dist/',
-        '.next/',
         '**/*.test.{ts,tsx}',
         '**/*.spec.{ts,tsx}',
         '**/types/**',
@@ -47,7 +46,7 @@ export default defineConfig({
 
     // Include/Exclude
     include: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
-    exclude: ['node_modules', 'dist', '.next', '.git'],
+    exclude: ['node_modules', 'dist', '.git'],
 
     // Reporters
     reporters: ['verbose'],
