@@ -1,20 +1,51 @@
-import { eq, desc } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, subscriptions, audits, violations, Audit, Violation } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { desc, eq } from "drizzle-orm";
+// Import MySQL schema for TypeScript types (canonical type source)
+import type { Audit, InsertUser, Violation } from "../drizzle/schema";
+import * as mysqlSchema from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDb = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySchema = any;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+let _db: AnyDb = null;
+let _schema: AnySchema = mysqlSchema;
+let _provider = "mysql";
+let _initialized = false;
+
+async function initDb() {
+  if (_initialized) return;
+  _initialized = true;
+
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.warn("[Database] DATABASE_URL not set, running without DB");
+    return;
   }
+
+  _provider = process.env.DATABASE_PROVIDER ?? "mysql";
+
+  try {
+    if (_provider === "sqlite") {
+      const { drizzle } = await import("drizzle-orm/libsql");
+      const { createClient } = await import("@libsql/client");
+      const client = createClient({ url });
+      _db = drizzle(client);
+      _schema = await import("../drizzle/schema.sqlite");
+    } else {
+      const { drizzle } = await import("drizzle-orm/mysql2");
+      _db = drizzle(url);
+      _schema = mysqlSchema;
+    }
+  } catch (error) {
+    console.warn("[Database] Failed to connect:", error);
+    _db = null;
+  }
+}
+
+export async function getDb(): Promise<AnyDb> {
+  await initDb();
   return _db;
 }
 
@@ -29,24 +60,20 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     return;
   }
 
+  const { users } = _schema;
+
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: Record<string, unknown> = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
+    for (const field of textFields) {
       const value = user[field];
-      if (value === undefined) return;
+      if (value === undefined) continue;
       const normalized = value ?? null;
       values[field] = normalized;
       updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
+    }
 
     if (user.lastSignedIn !== undefined) {
       values.lastSignedIn = user.lastSignedIn;
@@ -56,21 +83,27 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
     }
-
     if (Object.keys(updateSet).length === 0) {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    if (_provider === "sqlite") {
+      await db
+        .insert(users)
+        .values(values)
+        .onConflictDoUpdate({ target: users.openId, set: updateSet });
+    } else {
+      await db.insert(users).values(values).onDuplicateKeyUpdate({
+        set: updateSet,
+      });
+    }
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -84,29 +117,28 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  const { users } = _schema;
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
+  return result.length > 0 ? (result[0] as Audit) : undefined;
 }
 
-/**
- * Subscription queries
- */
 export async function getOrCreateSubscription(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const { subscriptions } = _schema;
   const existing = await db
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
-  if (existing.length > 0) {
-    return existing[0];
-  }
+  if (existing.length > 0) return existing[0];
 
-  // Create default free subscription
   await db.insert(subscriptions).values({
     userId,
     plan: "free",
@@ -119,103 +151,108 @@ export async function getOrCreateSubscription(userId: number) {
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
-
   return result[0];
 }
 
 export async function updateSubscription(
   userId: number,
-  updates: Partial<typeof subscriptions.$inferInsert>
+  updates: Record<string, unknown>
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const { subscriptions } = _schema;
   await db
     .update(subscriptions)
     .set(updates)
     .where(eq(subscriptions.userId, userId));
 }
 
-/**
- * Audit queries
- */
 export async function createAudit(
   userId: number,
   url: string,
   domain: string
-) {
+): Promise<{ insertId: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(audits).values({
-    userId,
-    url,
-    domain,
-    status: "pending",
-  });
+  const { audits } = _schema;
 
-  return result;
+  if (_provider === "sqlite") {
+    const rows = await db
+      .insert(audits)
+      .values({ userId, url, domain, status: "pending" })
+      .returning({ id: audits.id });
+    return { insertId: rows[0].id };
+  }
+
+  const result = await db
+    .insert(audits)
+    .values({ userId, url, domain, status: "pending" });
+  return result as { insertId: number };
 }
 
-export async function getAuditById(auditId: number) {
+export async function getAuditById(auditId: number): Promise<Audit | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const { audits } = _schema;
   const result = await db
     .select()
     .from(audits)
     .where(eq(audits.id, auditId))
     .limit(1);
-
-  return result[0];
+  return result[0] as Audit | undefined;
 }
 
-export async function getUserAudits(userId: number, limit = 20, offset = 0) {
+export async function getUserAudits(
+  userId: number,
+  limit = 20,
+  offset = 0
+): Promise<Audit[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const { audits } = _schema;
   return db
     .select()
     .from(audits)
     .where(eq(audits.userId, userId))
     .orderBy(desc(audits.createdAt))
     .limit(limit)
-    .offset(offset);
+    .offset(offset) as Promise<Audit[]>;
 }
 
 export async function updateAudit(
   auditId: number,
-  updates: Partial<typeof audits.$inferInsert>
+  updates: Record<string, unknown>
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const { audits } = _schema;
   await db.update(audits).set(updates).where(eq(audits.id, auditId));
 }
 
-/**
- * Violation queries
- */
 export async function createViolation(
   auditId: number,
-  violation: Omit<typeof violations.$inferInsert, 'auditId'>
+  violation: Omit<Violation, "id" | "auditId" | "createdAt">
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return db.insert(violations).values({
-    ...violation,
-    auditId,
-  });
+  const { violations } = _schema;
+  return db.insert(violations).values({ ...violation, auditId });
 }
 
-export async function getAuditViolations(auditId: number) {
+export async function getAuditViolations(auditId: number): Promise<Violation[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const { violations } = _schema;
   return db
     .select()
     .from(violations)
     .where(eq(violations.auditId, auditId))
-    .orderBy(violations.severity);
+    .orderBy(violations.severity) as Promise<Violation[]>;
 }
