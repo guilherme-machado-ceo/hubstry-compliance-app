@@ -6,7 +6,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/trpc/[trpc].ts": {
-      "runtime": "@vercel/node@5.x"
+      "runtime": "@vercel/node@5.0.0"
     }
   },
   "rewrites": [
