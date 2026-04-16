@@ -1,17 +1,7 @@
-# Estrutura antiga — ignorar no Vercel
-client/
-server/
-shared/
-drizzle/
+# Artefatos do Manus IDE
 .manus/
+.manus-logs/
 
-# Config files da estrutura antiga
-vite.config.ts
-drizzle.config.ts
-
-# Patches e outros
-patches/
-
-# Docs e testes
+# Documentação
 README.md
 todo.md
