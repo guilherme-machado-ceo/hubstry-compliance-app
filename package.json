@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "Plataforma profissional para auditar sites e verificar conformidade digital com padrões LGPD e ISO",
   "private": true,
-  "license": "MIT",
+  "license": "ELv2",
   "scripts": {
     "dev": "concurrently -n \"vite,api\" -c \"cyan,magenta\" \"vite\" \"tsx watch server/_core/dev-server.ts\"",
     "build": "prisma generate && vite build",
