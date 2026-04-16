@@ -1,9 +1,16 @@
 {
   "version": 2,
-  "buildCommand": "pnpm build",
-  "devCommand": "pnpm dev",
+  "buildCommand": "prisma generate && vite build",
   "installCommand": "pnpm install",
   "framework": "vite",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "functions": {
+    "api/trpc/[trpc].ts": {
+      "runtime": "@vercel/node@5.x"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/trpc/:path*", "destination": "/api/trpc/[trpc]" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
