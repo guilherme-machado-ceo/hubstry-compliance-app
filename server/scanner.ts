@@ -56,6 +56,12 @@ export async function scanHtmlForViolations(
 
     // Check for age verification
     violations.push(...detectAgeVerification(document));
+
+    // Check for consent mechanisms
+    violations.push(...detectConsent(document));
+
+    // Check for basic accessibility
+    violations.push(...detectAccessibility(document));
   } catch (error) {
     console.error("Error scanning HTML:", error);
     violations.push({
@@ -363,6 +369,104 @@ function detectAgeVerification(document: Document): ViolationDetail[] {
         "A página parece ser direcionada a menores, mas não possui mecanismo de verificação de idade conforme exigido pelo ECA Digital.",
       recommendation:
         "Implemente um sistema robusto de verificação de idade usando APIs oficiais como Datavalid (Serpro/Gov.br) antes de permitir acesso.",
+    });
+  }
+
+  return violations;
+}
+
+/**
+ * Detect missing consent mechanism
+ */
+function detectConsent(document: Document): ViolationDetail[] {
+  const violations: ViolationDetail[] = [];
+
+  const consentPatterns = [
+    "aceitar",
+    "aceito",
+    "concordo",
+    "consentimento",
+    "consent",
+    "cookies",
+    "lgpd",
+    "aceitar cookies",
+    "cookiebot",
+    "onetrust",
+    "privacidade",
+    "termos",
+  ];
+
+  const bodyText = document.body?.textContent?.toLowerCase() ?? "";
+  const hasConsentMechanism = consentPatterns.some((p) => bodyText.includes(p));
+
+  // Check for scripts that are typical CMPs
+  const scripts = document.querySelectorAll("script[src]");
+  const cmpScripts = Array.from(scripts).some((s) => {
+    const src = s.getAttribute("src") ?? "";
+    return (
+      src.includes("cookiebot") ||
+      src.includes("onetrust") ||
+      src.includes("cookiepro") ||
+      src.includes("didomi")
+    );
+  });
+
+  if (!hasConsentMechanism && !cmpScripts) {
+    violations.push({
+      type: "other",
+      severity: "critical",
+      title: "Mecanismo de Consentimento Não Encontrado",
+      description:
+        "Nenhum banner ou mecanismo de consentimento para cookies/dados foi detectado, violando LGPD e o ECA Digital.",
+      recommendation:
+        "Implemente uma plataforma de gerenciamento de consentimento (CMP) compatível com LGPD antes de carregar rastreadores.",
+    });
+  }
+
+  return violations;
+}
+
+/**
+ * Detect basic accessibility issues
+ */
+function detectAccessibility(document: Document): ViolationDetail[] {
+  const violations: ViolationDetail[] = [];
+
+  // Check for images without alt text
+  const images = document.querySelectorAll("img");
+  let imagesWithoutAlt = 0;
+  images.forEach((img) => {
+    const alt = img.getAttribute("alt");
+    if (alt === null || alt === undefined) {
+      imagesWithoutAlt++;
+    }
+  });
+
+  if (imagesWithoutAlt > 0) {
+    violations.push({
+      type: "other",
+      severity: "info",
+      title: `${imagesWithoutAlt} Imagem(ns) sem Texto Alternativo`,
+      description:
+        "Imagens sem atributo alt dificultam o acesso por pessoas com deficiência visual, impactando a acessibilidade digital.",
+      recommendation:
+        "Adicione o atributo alt descritivo a todas as imagens. Use alt=\"\" para imagens decorativas.",
+      elementSelector: "img:not([alt])",
+    });
+  }
+
+  // Check for missing lang attribute on <html>
+  const htmlEl = document.querySelector("html");
+  if (htmlEl && !htmlEl.getAttribute("lang")) {
+    violations.push({
+      type: "other",
+      severity: "info",
+      title: "Idioma da Página Não Declarado",
+      description:
+        "O atributo lang não está definido no elemento <html>, dificultando leitores de tela.",
+      recommendation:
+        "Adicione lang=\"pt-BR\" ao elemento <html> para indicar o idioma da página.",
+      elementSelector: "html:not([lang])",
     });
   }
 
