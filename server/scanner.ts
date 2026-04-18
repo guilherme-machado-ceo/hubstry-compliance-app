@@ -544,26 +544,6 @@ export async function scanUrl(url: string): Promise<ScanResult> {
       clearTimeout(timeoutId);
     }
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Erro desconhecido";
-
-    return {
-      violations: [
-        {
-          type: "other",
-          severity: "critical",
-          title: "Erro ao Acessar URL",
-          description: `Não foi possível acessar a URL: ${errorMessage}`,
-          recommendation:
-            "Verifique se a URL é válida, acessível e não está bloqueada por CORS.",
-        },
-      ],
-      complianceScore: 0,
-      summary: {
-        critical: 1,
-        warning: 0,
-        info: 0,
-      },
-    };
+    throw error;
   }
 }
