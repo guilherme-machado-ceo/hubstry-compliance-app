@@ -75,6 +75,7 @@ export default function Home() {
               size="lg"
               variant="outline"
               className="border-slate-600 hover:bg-slate-800 text-base"
+              onClick={() => navigate("/dashboard")}
             >
               Ver Demo
             </Button>
@@ -114,8 +115,8 @@ export default function Home() {
             },
             {
               icon: <Check className="w-8 h-8" />,
-              title: "Suporte 24/7",
-              description: "Equipe especializada pronta para ajudar",
+              title: "Recomendações Claras",
+              description: "Cada violação vem com ações práticas de correção",
             },
           ].map((feature, i) => (
             <Card
@@ -220,33 +221,15 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-slate-700/50 bg-slate-900/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-12">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div>
               <h4 className="font-bold mb-4">Hubstry Compliance</h4>
-              <p className="text-slate-400 text-sm">Conformidade digital simplificada</p>
+              <p className="text-slate-400 text-sm">Conformidade digital simplificada para a era do ECA Digital.</p>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Produto</h4>
+              <h4 className="font-bold mb-4">Contato</h4>
               <ul className="space-y-2 text-slate-400 text-sm">
-                <li><a href="#" className="hover:text-white transition">Recursos</a></li>
-                <li><a href="#" className="hover:text-white transition">Preços</a></li>
-                <li><a href="#" className="hover:text-white transition">API</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><a href="#" className="hover:text-white transition">Sobre</a></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition">Contato</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Legal</h4>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><a href="#" className="hover:text-white transition">Privacidade</a></li>
-                <li><a href="#" className="hover:text-white transition">Termos</a></li>
-                <li><a href="#" className="hover:text-white transition">Cookies</a></li>
+                <li><a href="mailto:contato@hubstry.com" className="hover:text-white transition">contato@hubstry.com</a></li>
               </ul>
             </div>
           </div>
