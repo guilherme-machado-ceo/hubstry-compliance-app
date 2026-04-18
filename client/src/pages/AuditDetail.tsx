@@ -4,8 +4,9 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Download } from "lucide-react";
+import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Download, Loader2 } from "lucide-react";
 import { useParams } from "wouter";
+import { useEffect } from "react";
 
 export default function AuditDetail() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -13,10 +14,21 @@ export default function AuditDetail() {
   const { id } = useParams();
 
   const auditId = id ? parseInt(id) : null;
-  const { data: audit, isLoading } = trpc.audits.get.useQuery(
+  const utils = trpc.useUtils();
+  const { data: audit, isLoading, refetch } = trpc.audits.get.useQuery(
     { id: auditId! },
     { enabled: !!auditId }
   );
+
+  const isPending = audit?.status === "pending";
+  useEffect(() => {
+    if (!isPending || !auditId) return;
+    const interval = setInterval(async () => {
+      const status = await utils.audits.status.fetch({ id: auditId }).catch(() => null);
+      if (status && status.status !== "pending") refetch();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isPending, auditId, utils, refetch]);
 
   if (loading) {
     return (
@@ -47,6 +59,40 @@ export default function AuditDetail() {
         <div className="text-center py-12">
           <p className="text-slate-600">Auditoria não encontrada</p>
           <Button onClick={() => navigate("/dashboard")} className="mt-4">
+            Voltar ao Dashboard
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (audit.status === "pending") {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+          <h2 className="text-2xl font-bold">Análise em andamento...</h2>
+          <p className="text-slate-500">Verificando {audit.url} — isso pode levar até 30 segundos</p>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar ao Dashboard
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (audit.status === "failed") {
+    const errorMessage = (audit as Record<string, unknown>)["errorMessage"] as string | null;
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500" />
+          <h2 className="text-2xl font-bold">Análise falhou</h2>
+          {errorMessage && <p className="text-slate-600 max-w-md">{errorMessage}</p>}
+          <p className="text-slate-500">Verifique se a URL é válida e acessível.</p>
+          <Button onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar ao Dashboard
           </Button>
         </div>
@@ -140,25 +186,26 @@ export default function AuditDetail() {
         {"pillars" in audit && Array.isArray(audit.pillars) && (
           <div>
             <h2 className="text-2xl font-bold mb-6">8 Pilares ECA Digital</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(audit.pillars as Array<{ id: string; name: string; weight: number; passed: boolean }>).map((pillar) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(audit.pillars as Array<{ id: string; name: string; weight: number; passed: boolean; violations: unknown[] }>).map((pillar) => (
                 <Card
                   key={pillar.id}
-                  className={`p-4 flex items-center gap-4 border-l-4 ${
+                  className={`p-4 flex flex-col items-center text-center gap-2 border-2 ${
                     pillar.passed ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"
                   }`}
                 >
                   {pillar.passed ? (
-                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                    <CheckCircle className="w-6 h-6 text-green-600" />
                   ) : (
-                    <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+                    <AlertCircle className="w-6 h-6 text-red-600" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{pillar.name}</p>
-                    <p className="text-xs text-slate-500">
-                      Peso: {Math.round(pillar.weight * 100)}% · {pillar.passed ? "Aprovado" : "Com violações"}
-                    </p>
-                  </div>
+                  <p className="font-semibold text-xs leading-tight">{pillar.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {pillar.passed
+                      ? "Aprovado"
+                      : `${pillar.violations.length} violação${pillar.violations.length !== 1 ? "ões" : ""}`}
+                  </p>
+                  <p className="text-xs text-slate-400">Peso: {Math.round(pillar.weight * 100)}%</p>
                 </Card>
               ))}
             </div>

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Plus, BarChart3, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function Dashboard() {
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [urlInput, setUrlInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanningUrl, setScanningUrl] = useState("");
+  const [scanningAuditId, setScanningAuditId] = useState<number | null>(null);
   const utils = trpc.useUtils();
 
   // Fetch user's audits
@@ -55,6 +56,7 @@ export default function Dashboard() {
         if (status.status === "completed") {
           setIsScanning(false);
           setScanningUrl("");
+          setScanningAuditId(null);
           navigate(`/audit/${auditId}`);
           return;
         }
@@ -62,6 +64,7 @@ export default function Dashboard() {
         if (status.status === "failed") {
           setIsScanning(false);
           setScanningUrl("");
+          setScanningAuditId(null);
           refetch();
           toast.error("Análise falhou. Tente novamente.");
           return;
@@ -73,6 +76,7 @@ export default function Dashboard() {
 
     setIsScanning(false);
     setScanningUrl("");
+    setScanningAuditId(null);
     refetch();
     toast.error("Tempo limite atingido. Tente novamente.");
   };
@@ -95,10 +99,22 @@ export default function Dashboard() {
     setScanningUrl(currentUrl);
     setUrlInput("");
 
-    const result = await createAudit.mutateAsync({ url: currentUrl });
-    refetch();
-    void pollStatus(result.auditId);
+    try {
+      const result = await createAudit.mutateAsync({ url: currentUrl });
+      setScanningAuditId(result.auditId);
+      refetch();
+      void pollStatus(result.auditId);
+    } catch {
+      // handled by onError
+    }
   };
+
+  const hasPending = audits?.some((a) => a.status === "pending");
+  useEffect(() => {
+    if (!hasPending) return;
+    const interval = setInterval(() => refetch(), 3000);
+    return () => clearInterval(interval);
+  }, [hasPending, refetch]);
 
   const scansRemaining = subscription
     ? subscription.scansPerMonth - subscription.scansUsedThisMonth
@@ -133,41 +149,45 @@ export default function Dashboard() {
         {/* Scanner Section */}
         <Card className="p-8">
           <h2 className="text-2xl font-bold mb-6">Nova Auditoria</h2>
-          {isScanning ? (
-            <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-              <p className="font-medium text-slate-700">
-                Analisando <span className="font-mono text-blue-600">{scanningUrl}</span>...
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <Input
+                placeholder="https://seu-site.com"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleScan()}
+                disabled={isScanning || (!isPro && scansRemaining <= 0)}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleScan}
+                disabled={isScanning || (!isPro && scansRemaining <= 0)}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+              >
+                {isScanning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Escanear
+                  </>
+                )}
+              </Button>
+            </div>
+            {isScanning && (
+              <p className="text-sm text-slate-500 animate-pulse">
+                Analisando {scanningUrl || "o site"}... isso pode levar até 30 segundos
               </p>
-              <p className="text-slate-500 text-sm">isso pode levar até 30 segundos</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <Input
-                  placeholder="https://seu-site.com"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleScan()}
-                  disabled={!isPro && scansRemaining <= 0}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleScan}
-                  disabled={!isPro && scansRemaining <= 0}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Escanear
-                </Button>
-              </div>
-              {!isPro && scansRemaining <= 0 && (
-                <p className="text-red-600 text-sm">
-                  Você atingiu o limite de scans. Faça upgrade para continuar.
-                </p>
-              )}
-            </div>
-          )}
+            )}
+            {!isPro && scansRemaining <= 0 && (
+              <p className="text-red-600 text-sm">
+                Você atingiu o limite de scans. Faça upgrade para continuar.
+              </p>
+            )}
+          </div>
         </Card>
 
         {/* Audits List */}
