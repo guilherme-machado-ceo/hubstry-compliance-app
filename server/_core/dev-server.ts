@@ -1,11 +1,14 @@
 import { config } from 'dotenv';
+// Load .env.local first (local overrides, gitignored), then .env.development as fallback (committed dev defaults)
 config({ path: '.env.local' });
+config({ path: '.env.development', override: false });
 
 import cors from 'cors';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import express from 'express';
 import { createContext } from './context';
 import { appRouter } from '../routers';
+import { registerOAuthRoutes } from './oauth';
 
 const app = express();
 
@@ -16,6 +19,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', version: '1.0.0', uptime: process.uptime() });
 });
+
+registerOAuthRoutes(app);
 
 app.use(
   '/api/trpc',
