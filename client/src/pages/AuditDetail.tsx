@@ -136,6 +136,35 @@ export default function AuditDetail() {
           </Button>
         </div>
 
+        {/* Pillars */}
+        {"pillars" in audit && Array.isArray(audit.pillars) && (
+          <div>
+            <h2 className="text-2xl font-bold mb-6">8 Pilares ECA Digital</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(audit.pillars as Array<{ id: string; name: string; weight: number; passed: boolean }>).map((pillar) => (
+                <Card
+                  key={pillar.id}
+                  className={`p-4 flex items-center gap-4 border-l-4 ${
+                    pillar.passed ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"
+                  }`}
+                >
+                  {pillar.passed ? (
+                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">{pillar.name}</p>
+                    <p className="text-xs text-slate-500">
+                      Peso: {Math.round(pillar.weight * 100)}% · {pillar.passed ? "Aprovado" : "Com violações"}
+                    </p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Violations */}
         {audit.violations && audit.violations.length > 0 ? (
           <div>
