@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { Plus, Search, BarChart3, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, BarChart3, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function Dashboard() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const [urlInput, setUrlInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [scanningUrl, setScanningUrl] = useState("");
+  const utils = trpc.useUtils();
 
   // Fetch user's audits
   const { data: audits, isLoading: auditLoading, refetch } = trpc.audits.list.useQuery();
@@ -21,12 +23,9 @@ export default function Dashboard() {
 
   // Create new audit mutation
   const createAudit = trpc.audits.create.useMutation({
-    onSuccess: () => {
-      setUrlInput("");
-      toast.success("Auditoria iniciada! Processando...");
-      refetch();
-    },
     onError: (error) => {
+      setIsScanning(false);
+      setScanningUrl("");
       toast.error(error.message || "Erro ao iniciar auditoria");
     },
   });
@@ -44,6 +43,40 @@ export default function Dashboard() {
     return null;
   }
 
+  const pollStatus = async (auditId: number) => {
+    const MAX_ATTEMPTS = 30;
+    const INTERVAL_MS = 2000;
+
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      await new Promise((r) => setTimeout(r, INTERVAL_MS));
+      try {
+        const status = await utils.audits.status.fetch({ id: auditId });
+
+        if (status.status === "completed") {
+          setIsScanning(false);
+          setScanningUrl("");
+          navigate(`/audit/${auditId}`);
+          return;
+        }
+
+        if (status.status === "failed") {
+          setIsScanning(false);
+          setScanningUrl("");
+          refetch();
+          toast.error("Análise falhou. Tente novamente.");
+          return;
+        }
+      } catch {
+        // Network hiccup during poll — continue
+      }
+    }
+
+    setIsScanning(false);
+    setScanningUrl("");
+    refetch();
+    toast.error("Tempo limite atingido. Tente novamente.");
+  };
+
   const handleScan = async () => {
     if (!urlInput.trim()) {
       toast.error("Por favor, insira uma URL válida");
@@ -57,9 +90,14 @@ export default function Dashboard() {
       return;
     }
 
+    const currentUrl = urlInput;
     setIsScanning(true);
-    await createAudit.mutateAsync({ url: urlInput });
-    setIsScanning(false);
+    setScanningUrl(currentUrl);
+    setUrlInput("");
+
+    const result = await createAudit.mutateAsync({ url: currentUrl });
+    refetch();
+    void pollStatus(result.auditId);
   };
 
   const scansRemaining = subscription
@@ -95,31 +133,41 @@ export default function Dashboard() {
         {/* Scanner Section */}
         <Card className="p-8">
           <h2 className="text-2xl font-bold mb-6">Nova Auditoria</h2>
-          <div className="space-y-4">
-            <div className="flex gap-3">
-              <Input
-                placeholder="https://seu-site.com"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleScan()}
-                disabled={isScanning || (!isPro && scansRemaining <= 0)}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleScan}
-                disabled={isScanning || (!isPro && scansRemaining <= 0)}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {isScanning ? "Escaneando..." : "Escanear"}
-              </Button>
-            </div>
-            {!isPro && scansRemaining <= 0 && (
-              <p className="text-red-600 text-sm">
-                Você atingiu o limite de scans. Faça upgrade para continuar.
+          {isScanning ? (
+            <div className="flex flex-col items-center gap-4 py-6 text-center">
+              <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+              <p className="font-medium text-slate-700">
+                Analisando <span className="font-mono text-blue-600">{scanningUrl}</span>...
               </p>
-            )}
-          </div>
+              <p className="text-slate-500 text-sm">isso pode levar até 30 segundos</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <Input
+                  placeholder="https://seu-site.com"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleScan()}
+                  disabled={!isPro && scansRemaining <= 0}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleScan}
+                  disabled={!isPro && scansRemaining <= 0}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Escanear
+                </Button>
+              </div>
+              {!isPro && scansRemaining <= 0 && (
+                <p className="text-red-600 text-sm">
+                  Você atingiu o limite de scans. Faça upgrade para continuar.
+                </p>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Audits List */}

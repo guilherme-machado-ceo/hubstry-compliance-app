@@ -1,4 +1,5 @@
 import { COOKIE_NAME } from "@shared/const";
+import { ECA_PILLARS } from "@shared/pillars";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -102,7 +103,34 @@ export const appRouter = router({
           throw new Error("Auditoria não encontrada");
         }
         const violations = await db.getAuditViolations(input.id);
-        return { ...audit, violations };
+
+        const pillars = ECA_PILLARS.map((pillar) => {
+          const pillarViolations = violations.filter((v) => v.type === pillar.id);
+          return {
+            id: pillar.id,
+            name: pillar.name,
+            weight: pillar.weight,
+            passed: pillarViolations.length === 0,
+            violations: pillarViolations,
+          };
+        });
+
+        return { ...audit, violations, pillars };
+      }),
+
+    status: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const audit = await db.getAuditById(input.id);
+        if (!audit || audit.userId !== ctx.user.id) {
+          throw new Error("Auditoria não encontrada");
+        }
+        return {
+          id: audit.id,
+          status: audit.status,
+          complianceScore: audit.complianceScore,
+          errorMessage: (audit as Record<string, unknown>)["errorMessage"] as string | null ?? null,
+        };
       }),
   }),
 });
