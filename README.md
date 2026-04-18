@@ -67,11 +67,11 @@ obrigatória até janeiro de 2027 (ANPD).
 ## Stack Tecnológico
 
 - **Frontend**: React 19 + Vite 5 + Tailwind CSS 4 + shadcn/ui
-- **Backend**: Express 5 + tRPC 11 + Prisma 6
-- **Banco de dados**: MySQL (produção) / SQLite (desenvolvimento)
+- **Backend**: Express 5 + tRPC 11 + Drizzle ORM
+- **Banco de dados**: SQLite (desenvolvimento)
 - **Pagamentos**: Stripe
-- **Deploy**: Vercel (frontend + API serverless)
-- **Autenticação**: OAuth
+- **Deploy**: Vercel
+- **Autenticação**: GitHub OAuth
 
 ---
 
@@ -81,54 +81,43 @@ obrigatória até janeiro de 2027 (ANPD).
 - Node.js 22+
 - pnpm 10+
 
-### Quick Start — 5 minutos (sem OAuth, sem Stripe)
+### Quick Start (5 minutos, sem configuração)
 
 ```bash
 git clone https://github.com/guilherme-machado-ceo/hubstry-compliance-app.git
 cd hubstry-compliance-app
 pnpm install
-pnpm db:setup:dev   # cria dev.db + aplica schema + insere dados de exemplo
-pnpm dev            # sobe frontend em :5173 e API em :3001
+pnpm db:setup:dev
+pnpm dev
 ```
 
-Acesse **http://localhost:5173** — login automático como `dev@hubstry.local`
-(Plano Pro) sem precisar configurar OAuth. Banner amarelo confirma o modo dev.
+Acesse **http://localhost:5173**
 
-> O arquivo `.env.development` já está commitado com todos os valores necessários
-> para este modo. Nenhuma variável de ambiente adicional é necessária.
+O modo dev usa autenticação bypassed automaticamente (`BYPASS_AUTH=true`)
+— nenhum login necessário para avaliar o produto.
 
-### Modo Completo (com OAuth real)
+### Variáveis de ambiente
 
-Para usar autenticação real, configure sua OAuth App no GitHub:
+Crie `.env.development` na raiz com:
 
-1. GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
-2. **Homepage URL**: `http://localhost:5173`
-3. **Authorization callback URL**: `http://localhost:3001/auth/callback`
-4. Copie `Client ID` e `Client Secret` para `.env.local`:
-
-```bash
-cp .env.example .env.local
-# Edite .env.local com suas credenciais reais
-# Remova ou defina BYPASS_AUTH=false
+```env
+NODE_ENV=development
+BYPASS_AUTH=true
+DATABASE_URL=file:./dev.db
+DATABASE_PROVIDER=sqlite
+JWT_SECRET=qualquer-string-longa-para-dev
+STRIPE_SECRET_KEY=sk_test_placeholder_dev
+STRIPE_WEBHOOK_SECRET=whsec_placeholder_dev
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder_dev
+VITE_APP_URL=http://localhost:5173
+APP_URL=http://localhost:5173
+VITE_API_URL=http://localhost:3001
 ```
 
-### Scripts disponíveis
+### Login real com GitHub OAuth (opcional)
 
-| Comando | Descrição |
-|---|---|
-| `pnpm dev` | Inicia frontend (:5173) + API (:3001) |
-| `pnpm db:setup:dev` | Cria SQLite + schema + seed de exemplo |
-| `pnpm db:reset:dev` | Apaga e recria o banco do zero |
-| `pnpm test` | Roda testes unitários |
-| `pnpm test:coverage` | Testes com relatório de cobertura |
-
-### Variáveis de ambiente (produção)
-
-Copie `.env.example` e preencha com suas credenciais:
-
-```bash
-cp .env.example .env.local
-```
+Para testar o fluxo de autenticação completo,
+consulte [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
 
 ---
 
@@ -144,4 +133,4 @@ Para licenciamento comercial, parcerias ou uso enterprise:
 
 ---
 
-© 2025 Hubstry Deep Tech · Guilherme Gonçalves Machado · Rio de Janeiro, Brasil
+© 2026 Hubstry Deep Tech · Guilherme Gonçalves Machado · Rio de Janeiro, Brasil
