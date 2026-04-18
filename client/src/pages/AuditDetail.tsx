@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Download, Loader2 } from "lucide-react";
 import { useParams } from "wouter";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function AuditDetail() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -15,6 +16,7 @@ export default function AuditDetail() {
 
   const auditId = id ? parseInt(id) : null;
   const utils = trpc.useUtils();
+  const { data: subscription } = trpc.subscription.get.useQuery();
   const { data: audit, isLoading, refetch } = trpc.audits.get.useQuery(
     { id: auditId! },
     { enabled: !!auditId }
@@ -173,11 +175,28 @@ export default function AuditDetail() {
 
         {/* Export Button */}
         <div className="flex gap-3">
-          <Button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
+          <Button
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+            onClick={() => {
+              const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
+              if (isPro) {
+                toast.info("Exportação de PDF em breve");
+              } else {
+                toast.info("Exportação de PDF disponível no plano Pro");
+              }
+            }}
+          >
             <Download className="w-4 h-4 mr-2" />
             Exportar PDF
           </Button>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href)
+                .then(() => toast.success("Link copiado para a área de transferência"))
+                .catch(() => toast.error("Não foi possível copiar o link"));
+            }}
+          >
             Compartilhar Relatório
           </Button>
         </div>
