@@ -13,6 +13,10 @@ app.use(cors({ origin: process.env.VITE_ORIGIN ?? 'http://localhost:5173', crede
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', version: '1.0.0', uptime: process.uptime() });
+});
+
 app.use(
   '/api/trpc',
   createExpressMiddleware({

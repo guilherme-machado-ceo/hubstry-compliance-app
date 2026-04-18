@@ -53,14 +53,14 @@ export const appRouter = router({
         const result = await db.createAudit(ctx.user.id, input.url, domain);
         const auditId = (result as any).insertId;
 
-        // Increment scan count
-        await db.updateSubscription(ctx.user.id, {
-          scansUsedThisMonth: subscription.scansUsedThisMonth + 1,
-        });
-
-        // Scan URL asynchronously
+        // Scan URL asynchronously — increment counter only on success
         scanUrl(input.url)
           .then(async (scanResult) => {
+            // Increment scan count after successful fetch
+            await db.updateSubscription(ctx.user.id, {
+              scansUsedThisMonth: subscription.scansUsedThisMonth + 1,
+            });
+
             // Store violations
             for (const violation of scanResult.violations) {
               const violationType = violation.type as "dark_pattern" | "autoplay" | "infinite_scroll" | "ad_tracker" | "lootbox" | "missing_privacy_policy" | "data_collection" | "age_verification" | "other";
