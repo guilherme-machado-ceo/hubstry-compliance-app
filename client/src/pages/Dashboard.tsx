@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { Plus, Search, BarChart3, AlertCircle, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { Plus, BarChart3, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function Dashboard() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const [urlInput, setUrlInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [scanningUrl, setScanningUrl] = useState("");
+  const [scanningAuditId, setScanningAuditId] = useState<number | null>(null);
+  const utils = trpc.useUtils();
 
   // Fetch user's audits
   const { data: audits, isLoading: auditLoading, refetch } = trpc.audits.list.useQuery();
@@ -21,12 +24,9 @@ export default function Dashboard() {
 
   // Create new audit mutation
   const createAudit = trpc.audits.create.useMutation({
-    onSuccess: () => {
-      setUrlInput("");
-      toast.success("Auditoria iniciada! Processando...");
-      refetch();
-    },
     onError: (error) => {
+      setIsScanning(false);
+      setScanningUrl("");
       toast.error(error.message || "Erro ao iniciar auditoria");
     },
   });
@@ -44,6 +44,43 @@ export default function Dashboard() {
     return null;
   }
 
+  const pollStatus = async (auditId: number) => {
+    const MAX_ATTEMPTS = 30;
+    const INTERVAL_MS = 2000;
+
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      await new Promise((r) => setTimeout(r, INTERVAL_MS));
+      try {
+        const status = await utils.audits.status.fetch({ id: auditId });
+
+        if (status.status === "completed") {
+          setIsScanning(false);
+          setScanningUrl("");
+          setScanningAuditId(null);
+          navigate(`/audit/${auditId}`);
+          return;
+        }
+
+        if (status.status === "failed") {
+          setIsScanning(false);
+          setScanningUrl("");
+          setScanningAuditId(null);
+          refetch();
+          toast.error("Análise falhou. Tente novamente.");
+          return;
+        }
+      } catch {
+        // Network hiccup during poll — continue
+      }
+    }
+
+    setIsScanning(false);
+    setScanningUrl("");
+    setScanningAuditId(null);
+    refetch();
+    toast.error("Tempo limite atingido. Tente novamente.");
+  };
+
   const handleScan = async () => {
     if (!urlInput.trim()) {
       toast.error("Por favor, insira uma URL válida");
@@ -57,10 +94,27 @@ export default function Dashboard() {
       return;
     }
 
+    const currentUrl = urlInput;
     setIsScanning(true);
-    await createAudit.mutateAsync({ url: urlInput });
-    setIsScanning(false);
+    setScanningUrl(currentUrl);
+    setUrlInput("");
+
+    try {
+      const result = await createAudit.mutateAsync({ url: currentUrl });
+      setScanningAuditId(result.auditId);
+      refetch();
+      void pollStatus(result.auditId);
+    } catch {
+      // handled by onError
+    }
   };
+
+  const hasPending = audits?.some((a) => a.status === "pending");
+  useEffect(() => {
+    if (!hasPending) return;
+    const interval = setInterval(() => refetch(), 3000);
+    return () => clearInterval(interval);
+  }, [hasPending, refetch]);
 
   const scansRemaining = subscription
     ? subscription.scansPerMonth - subscription.scansUsedThisMonth
@@ -110,10 +164,24 @@ export default function Dashboard() {
                 disabled={isScanning || (!isPro && scansRemaining <= 0)}
                 className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                {isScanning ? "Escaneando..." : "Escanear"}
+                {isScanning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Escanear
+                  </>
+                )}
               </Button>
             </div>
+            {isScanning && (
+              <p className="text-sm text-slate-500 animate-pulse">
+                Analisando {scanningUrl || "o site"}... isso pode levar até 30 segundos
+              </p>
+            )}
             {!isPro && scansRemaining <= 0 && (
               <p className="text-red-600 text-sm">
                 Você atingiu o limite de scans. Faça upgrade para continuar.
