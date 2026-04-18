@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { ECA_PILLARS } from "@shared/pillars";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -43,7 +44,10 @@ export const appRouter = router({
           subscription.plan === "free" &&
           subscription.scansUsedThisMonth >= subscription.scansPerMonth
         ) {
-          throw new Error("Limite de scans atingido. Faça upgrade para continuar.");
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Limite de scans atingido. Faça upgrade para continuar.",
+          });
         }
 
         // Extract domain from URL
@@ -58,9 +62,7 @@ export const appRouter = router({
         scanUrl(input.url)
           .then(async (scanResult) => {
             // Increment scan count after successful fetch
-            await db.updateSubscription(ctx.user.id, {
-              scansUsedThisMonth: subscription.scansUsedThisMonth + 1,
-            });
+            await db.incrementScansUsed(ctx.user.id);
 
             // Store violations
             for (const violation of scanResult.violations) {

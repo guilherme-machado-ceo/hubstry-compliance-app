@@ -80,6 +80,7 @@ obrigatória até janeiro de 2027 (ANPD).
 ### Pré-requisitos
 - Node.js 22+
 - pnpm 10+
+- ~1GB de espaço em disco disponível
 
 ### Quick Start (5 minutos, sem configuração)
 

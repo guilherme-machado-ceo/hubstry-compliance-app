@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 // Load .env.local first (local overrides, gitignored), then .env.development as fallback (committed dev defaults)
 config({ path: '.env.local' });
-config({ path: '.env.development', override: false });
+config({ path: '.env.development', override: true });
 
 import cors from 'cors';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
