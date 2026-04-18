@@ -4,6 +4,7 @@
  */
 
 import { JSDOM } from "jsdom";
+import { ECA_PILLARS } from "@shared/pillars";
 
 export interface ScanResult {
   violations: ViolationDetail[];
@@ -73,20 +74,21 @@ export async function scanHtmlForViolations(
     });
   }
 
-  // Calculate compliance score
+  // Score ponderado pelos 8 pilares ECA Digital
+  const complianceScore = Math.round(
+    ECA_PILLARS.reduce((acc, pillar) => {
+      const hasViolation = violations.some((v) => v.type === pillar.id);
+      return acc + (hasViolation ? 0 : pillar.weight * 100);
+    }, 0)
+  );
+
   const criticalCount = violations.filter((v) => v.severity === "critical").length;
   const warningCount = violations.filter((v) => v.severity === "warning").length;
   const infoCount = violations.filter((v) => v.severity === "info").length;
 
-  // Score calculation: 100 - (critical * 10 + warning * 5 + info * 1)
-  const complianceScore = Math.max(
-    0,
-    100 - (criticalCount * 10 + warningCount * 5 + infoCount * 1)
-  );
-
   return {
     violations,
-    complianceScore: Math.round(complianceScore),
+    complianceScore,
     summary: {
       critical: criticalCount,
       warning: warningCount,
@@ -473,14 +475,47 @@ function detectAccessibility(document: Document): ViolationDetail[] {
   return violations;
 }
 
+function assertSafeUrl(url: string): void {
+  const parsed = new URL(url);
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Protocolo não permitido. Use http:// ou https://");
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  const blockedHostnames = ["localhost", "0.0.0.0", "::1", "[::1]"];
+  if (blockedHostnames.includes(hostname)) {
+    throw new Error("URL aponta para host local não permitido");
+  }
+
+  const privateRanges = [
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^fc00:/i,
+    /^fe80:/i,
+  ];
+
+  if (privateRanges.some((r) => r.test(hostname))) {
+    throw new Error("URL aponta para rede privada não permitida");
+  }
+
+  const blockedPatterns = ["169.254.169.254", "metadata.google.internal"];
+  if (blockedPatterns.some((p) => hostname.includes(p))) {
+    throw new Error("URL não permitida");
+  }
+}
+
 /**
  * Fetch and scan a URL
  */
 export async function scanUrl(url: string): Promise<ScanResult> {
-  try {
-    // Validate URL
-    const urlObj = new URL(url);
+  assertSafeUrl(url);
 
+  try {
     // Fetch the page
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
