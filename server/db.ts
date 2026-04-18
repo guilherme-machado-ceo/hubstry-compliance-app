@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 // Import MySQL schema for TypeScript types (canonical type source)
 import type { Audit, InsertUser, Violation } from "../drizzle/schema";
 import * as mysqlSchema from "../drizzle/schema";
@@ -165,6 +165,19 @@ export async function updateSubscription(
   await db
     .update(subscriptions)
     .set(updates)
+    .where(eq(subscriptions.userId, userId));
+}
+
+export async function incrementScansUsed(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { subscriptions } = _schema;
+  await db
+    .update(subscriptions)
+    .set({
+      scansUsedThisMonth: sql`${subscriptions.scansUsedThisMonth} + 1`,
+    })
     .where(eq(subscriptions.userId, userId));
 }
 
