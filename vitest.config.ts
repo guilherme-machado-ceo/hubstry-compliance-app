@@ -9,7 +9,7 @@ export default defineConfig({
   root: templateRoot,
   resolve: {
     alias: {
-      '@': path.resolve(templateRoot, '.'),
+      '@': path.resolve(templateRoot, 'client', 'src'),
       '@/app': path.resolve(templateRoot, 'app'),
       '@/components': path.resolve(templateRoot, 'components'),
       '@/lib': path.resolve(templateRoot, 'lib'),
@@ -17,6 +17,7 @@ export default defineConfig({
       '@/types': path.resolve(templateRoot, 'types'),
       '@/utils': path.resolve(templateRoot, 'utils'),
       '@/prisma': path.resolve(templateRoot, 'prisma'),
+      '@shared': path.resolve(templateRoot, 'shared'),
     },
   },
   test: {

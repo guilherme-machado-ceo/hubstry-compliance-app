@@ -81,25 +81,53 @@ obrigatória até janeiro de 2027 (ANPD).
 - Node.js 22+
 - pnpm 10+
 
-### Instalação
+### Quick Start — 5 minutos (sem OAuth, sem Stripe)
 
 ```bash
 git clone https://github.com/guilherme-machado-ceo/hubstry-compliance-app.git
 cd hubstry-compliance-app
 pnpm install
-pnpm db:push:dev   # cria banco SQLite local com todas as tabelas
-pnpm dev           # sobe frontend em :5173 e API em :3001
+pnpm db:setup:dev   # cria dev.db + aplica schema + insere dados de exemplo
+pnpm dev            # sobe frontend em :5173 e API em :3001
 ```
 
-Acesse em **http://localhost:5173** — nenhuma configuração adicional necessária
-para avaliação local.
+Acesse **http://localhost:5173** — login automático como `dev@hubstry.local`
+(Plano Pro) sem precisar configurar OAuth. Banner amarelo confirma o modo dev.
+
+> O arquivo `.env.development` já está commitado com todos os valores necessários
+> para este modo. Nenhuma variável de ambiente adicional é necessária.
+
+### Modo Completo (com OAuth real)
+
+Para usar autenticação real, configure sua OAuth App no GitHub:
+
+1. GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+2. **Homepage URL**: `http://localhost:5173`
+3. **Authorization callback URL**: `http://localhost:3001/auth/callback`
+4. Copie `Client ID` e `Client Secret` para `.env.local`:
+
+```bash
+cp .env.example .env.local
+# Edite .env.local com suas credenciais reais
+# Remova ou defina BYPASS_AUTH=false
+```
+
+### Scripts disponíveis
+
+| Comando | Descrição |
+|---|---|
+| `pnpm dev` | Inicia frontend (:5173) + API (:3001) |
+| `pnpm db:setup:dev` | Cria SQLite + schema + seed de exemplo |
+| `pnpm db:reset:dev` | Apaga e recria o banco do zero |
+| `pnpm test` | Roda testes unitários |
+| `pnpm test:coverage` | Testes com relatório de cobertura |
 
 ### Variáveis de ambiente (produção)
 
-Copie `.env.production.example` e preencha com suas credenciais:
+Copie `.env.example` e preencha com suas credenciais:
 
 ```bash
-cp .env.production.example .env.local
+cp .env.example .env.local
 ```
 
 ---
