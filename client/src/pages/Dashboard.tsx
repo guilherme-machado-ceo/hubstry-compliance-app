@@ -116,11 +116,11 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [hasPending, refetch]);
 
-  const scansRemaining = subscription
+  const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
+
+  const scansRemaining = subscription && !isPro
     ? subscription.scansPerMonth - subscription.scansUsedThisMonth
     : 0;
-
-  const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
 
   return (
     <DashboardLayout>

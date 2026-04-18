@@ -162,7 +162,7 @@ async function main() {
     await db.insert(subscriptions).values({
       userId: devUser.id,
       plan: "pro",
-      scansPerMonth: -1,
+      scansPerMonth: 999999,
       scansUsedThisMonth: 5,
       status: "active",
     });
