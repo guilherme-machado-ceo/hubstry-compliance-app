@@ -1,5 +1,9 @@
 # Local Setup
 
+> **AVISO DE SEGURANÇA:** `BYPASS_AUTH=true` é **exclusivo de desenvolvimento local**.
+> Nunca configure esta variável no Vercel, Railway, Heroku ou qualquer ambiente de
+> staging/produção. Em produção, o servidor lança erro fatal se detectar `BYPASS_AUTH=true`.
+
 ## Quick Start (BYPASS_AUTH — sem OAuth)
 
 ```bash

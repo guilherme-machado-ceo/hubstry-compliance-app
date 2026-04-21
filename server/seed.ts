@@ -161,12 +161,12 @@ async function main() {
   if (existingSub.length === 0) {
     await db.insert(subscriptions).values({
       userId: devUser.id,
-      plan: "pro",
-      scansPerMonth: 999999,
-      scansUsedThisMonth: 5,
+      plan: "free",
+      scansPerMonth: 5,
+      scansUsedThisMonth: 0,
       status: "active",
     });
-    console.log("✅ Subscription Pro criada");
+    console.log("✅ Subscription Free criada");
   } else {
     console.log("ℹ️  Subscription já existe, pulando");
   }
