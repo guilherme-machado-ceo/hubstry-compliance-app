@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Download, Loader2, Zap, Star } from "lucide-react";
 import { useParams } from "wouter";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -173,33 +173,92 @@ export default function AuditDetail() {
           </div>
         </Card>
 
-        {/* Export Button */}
-        <div className="flex gap-3">
-          <Button
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-            onClick={() => {
-              const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
-              if (isPro) {
-                toast.info("Exportação de PDF em breve");
-              } else {
-                toast.info("Exportação de PDF disponível no plano Pro");
-              }
-            }}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Exportar PDF
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href)
-                .then(() => toast.success("Link copiado para a área de transferência"))
-                .catch(() => toast.error("Não foi possível copiar o link"));
-            }}
-          >
-            Compartilhar Relatório
-          </Button>
-        </div>
+        {/* Export & Share */}
+        {(() => {
+          const plan = subscription?.plan;
+          const isPro = plan === "pro" || plan === "enterprise";
+          const isEnterprise = plan === "enterprise";
+          return (
+            <div className="space-y-3">
+              <div className="flex gap-3 flex-wrap">
+                {isPro ? (
+                  <Button
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                    onClick={() => toast.info("Exportação de PDF em breve")}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar PDF
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => window.location.assign("/pricing")}
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Exportar PDF — disponível no plano Pro
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href)
+                      .then(() => toast.success("Link copiado para a área de transferência"))
+                      .catch(() => toast.error("Não foi possível copiar o link"));
+                  }}
+                >
+                  Compartilhar Relatório
+                </Button>
+              </div>
+
+              {isEnterprise && (
+                <Card className="bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Star className="w-5 h-5 text-violet-600" />
+                    <h4 className="font-semibold text-violet-800">Funcionalidades Enterprise</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-violet-700">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-violet-500" />
+                      <span>API access <span className="text-violet-400 text-xs">(em breve)</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-violet-500" />
+                      <span>Suporte prioritário <span className="text-violet-400 text-xs">(em breve)</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-violet-500" />
+                      <span>Webhooks customizados <span className="text-violet-400 text-xs">(em breve)</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-violet-500" />
+                      <span>Histórico ilimitado</span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {!isPro && (
+                <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-blue-800 text-sm">Desbloqueie recursos avançados</p>
+                      <p className="text-blue-600 text-xs mt-0.5">PDF export, histórico completo e muito mais no plano Pro.</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shrink-0 ml-4"
+                      onClick={() => window.location.assign("/pricing")}
+                    >
+                      <Zap className="w-4 h-4 mr-1" />
+                      Ver Planos
+                    </Button>
+                  </div>
+                </Card>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Pillars */}
         {"pillars" in audit && Array.isArray(audit.pillars) && (
