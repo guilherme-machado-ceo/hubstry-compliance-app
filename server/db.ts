@@ -168,6 +168,19 @@ export async function updateSubscription(
     .where(eq(subscriptions.userId, userId));
 }
 
+export async function getSubscriptionByStripeId(stripeSubscriptionId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { subscriptions } = _schema;
+  const result = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function incrementScansUsed(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
