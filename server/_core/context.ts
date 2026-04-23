@@ -29,7 +29,7 @@ export async function createContext(
     throw new Error("[FATAL] BYPASS_AUTH não pode ser ativado em produção.");
   }
 
-  // Dev bypass: skips Manus OAuth entirely — use BYPASS_AUTH=true in .env.development
+  // Dev bypass: skips GitHub OAuth entirely — use BYPASS_AUTH=true in .env.development
   if (process.env.BYPASS_AUTH === "true") {
     const devUser = await db.getUserByOpenId("dev-user-001").catch(() => undefined);
     return {
