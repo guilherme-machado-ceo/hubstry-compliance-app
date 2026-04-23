@@ -9,6 +9,7 @@ import express from 'express';
 import { createContext } from './context';
 import { appRouter } from '../routers';
 import { registerOAuthRoutes } from './oauth';
+import { registerMonthlyResetJob } from '../jobs/reset-monthly-scans';
 
 const app = express();
 
@@ -33,4 +34,5 @@ app.use(
 const PORT = Number(process.env.API_PORT ?? 3001);
 app.listen(PORT, () => {
   console.log(`API rodando em http://localhost:${PORT}`);
+  registerMonthlyResetJob();
 });

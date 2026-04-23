@@ -38,10 +38,11 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({ url: z.string().url() }))
       .mutation(async ({ ctx, input }) => {
-        // Check subscription limits
+        // Check subscription limits (-1 means unlimited)
         const subscription = await db.getOrCreateSubscription(ctx.user.id);
+        const isUnlimited = subscription.scansPerMonth === -1;
         if (
-          subscription.plan === "free" &&
+          !isUnlimited &&
           subscription.scansUsedThisMonth >= subscription.scansPerMonth
         ) {
           throw new TRPCError({

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { Plus, BarChart3, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Plus, BarChart3, AlertCircle, CheckCircle, Loader2, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -139,10 +139,15 @@ export default function Dashboard() {
               <p className="text-slate-600">
                 {isPro
                   ? "Scans ilimitados"
-                  : `${scansRemaining} scans restantes este mês`}
+                  : `${scansRemaining} scan${scansRemaining !== 1 ? "s" : ""} restante${scansRemaining !== 1 ? "s" : ""} este mês`}
               </p>
+              {!isPro && (
+                <p className="text-slate-400 text-xs mt-1">
+                  Seus scans reiniciam no dia 1º de cada mês.
+                </p>
+              )}
             </div>
-            <Button variant="outline">Gerenciar Plano</Button>
+            <Button variant="outline" onClick={() => navigate("/pricing")}>Gerenciar Plano</Button>
           </div>
         </Card>
 
@@ -183,9 +188,24 @@ export default function Dashboard() {
               </p>
             )}
             {!isPro && scansRemaining <= 0 && (
-              <p className="text-red-600 text-sm">
-                Você atingiu o limite de scans. Faça upgrade para continuar.
-              </p>
+              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div>
+                  <p className="text-amber-800 font-medium text-sm">
+                    Você atingiu o limite de scans este mês.
+                  </p>
+                  <p className="text-amber-600 text-xs mt-0.5">
+                    Reinicia em 1º do próximo mês ou faça upgrade agora.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shrink-0 ml-4"
+                  onClick={() => navigate("/pricing")}
+                >
+                  <Zap className="w-4 h-4 mr-1" />
+                  Fazer Upgrade
+                </Button>
+              </div>
             )}
           </div>
         </Card>

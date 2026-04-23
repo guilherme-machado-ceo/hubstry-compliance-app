@@ -8,6 +8,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
+// Maps Stripe price IDs to plan details — configure STRIPE_PRICE_PRO and
+// STRIPE_PRICE_ENTERPRISE in your environment before deploying.
+const PRICE_PLAN_MAP: Record<string, { plan: "pro" | "enterprise"; scansPerMonth: number }> = {
+  [process.env.STRIPE_PRICE_PRO!]:        { plan: "pro",        scansPerMonth: 500 },
+  [process.env.STRIPE_PRICE_ENTERPRISE!]: { plan: "enterprise", scansPerMonth: -1 },
+};
+
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"];
 
@@ -86,59 +93,80 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  // Get the subscription to determine the plan
   const subscription = await stripe.subscriptions.retrieve(
     session.subscription as string
   );
 
   const priceId = subscription.items.data[0]?.price.id;
-  let plan: "pro" | "enterprise" = "pro";
+  const planDetails = priceId ? PRICE_PLAN_MAP[priceId] : undefined;
 
-  if (priceId === process.env.STRIPE_PRICE_ENTERPRISE) {
-    plan = "enterprise";
+  if (!planDetails) {
+    console.error(`[Webhook] Unknown priceId "${priceId}" — not updating subscription`);
+    return;
   }
 
-  // Update user subscription
   await db.updateSubscription(userId, {
-    plan,
+    plan: planDetails.plan,
     stripeCustomerId: session.customer as string,
     stripeSubscriptionId: subscription.id,
-    scansPerMonth: plan === "enterprise" ? Infinity : Infinity, // Both unlimited
+    scansPerMonth: planDetails.scansPerMonth,
     scansUsedThisMonth: 0,
   });
 
-  console.log(`[Webhook] Updated user ${userId} to plan ${plan}`);
-
-  // Notify owner
-  try {
-    const user = await db.getUserByOpenId(session.metadata?.customer_email || "");
-    if (user) {
-      // You can add owner notification here
-      console.log(`[Webhook] User ${user.name} upgraded to ${plan}`);
-    }
-  } catch (error) {
-    console.error("[Webhook] Error notifying owner:", error);
-  }
+  console.log(`[Webhook] Updated user ${userId} to plan ${planDetails.plan}`);
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   console.log("[Webhook] Subscription updated:", subscription.id);
 
-  // Find user by stripe subscription ID
-  // This would require a query to find user by stripeSubscriptionId
-  // For now, we'll skip this as it requires additional DB query capability
+  const existing = await db.getSubscriptionByStripeId(subscription.id);
+  if (!existing) {
+    console.warn(`[Webhook] No local subscription found for ${subscription.id}`);
+    return;
+  }
+
+  const status = subscription.status;
+
+  if (status === "active") {
+    // Keep current plan — no downgrade needed
+    console.log(`[Webhook] Subscription ${subscription.id} is active, no changes`);
+    return;
+  }
+
+  if (status === "past_due" || status === "unpaid") {
+    await db.updateSubscription(existing.userId, {
+      plan: "free",
+      scansPerMonth: 5,
+      status,
+    });
+    console.log(`[Webhook] Downgraded user ${existing.userId} to free (status: ${status})`);
+    return;
+  }
+
+  if (status === "canceled" || status === "incomplete_expired") {
+    await handleSubscriptionDeleted(subscription);
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log("[Webhook] Subscription deleted:", subscription.id);
 
-  // Find user by stripe subscription ID and downgrade to free
-  // Similar to above, would need additional DB query capability
+  const existing = await db.getSubscriptionByStripeId(subscription.id);
+  if (!existing) {
+    console.warn(`[Webhook] No local subscription found for ${subscription.id}`);
+    return;
+  }
+
+  await db.updateSubscription(existing.userId, {
+    plan: "free",
+    scansPerMonth: 5,
+    stripeSubscriptionId: null,
+    status: "canceled",
+  });
+
+  console.log(`[Webhook] Reverted user ${existing.userId} to free plan`);
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
   console.log("[Webhook] Invoice paid:", invoice.id);
-
-  // Log payment for audit purposes
-  // You can add additional logic here for payment tracking
 }
