@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "pnpm install && vite build",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "framework": null,
   "outputDirectory": "dist",
   "functions": {
