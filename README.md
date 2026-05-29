@@ -64,31 +64,46 @@ obrigatória até janeiro de 2027 (ANPD).
 
 ---
 
-## Teste em 3 Passos (Sem TI, Sem Instalação)
+## Teste em 3 Passos (via Terminal)
 
-Você não precisa ser desenvolvedor para testar o Hubstry Compliance.
-São 3 passos simples, direto no navegador:
+### Pré-requisitos
 
-### Passo 1 — Acesse
+- **Node.js 22+** — [nodejs.org](https://nodejs.org)
+- **pnpm 10+** — instale com: `npm install -g pnpm`
+- **Git** — [git-scm.com](https://git-scm.com)
+- **~1 GB** de espaço em disco
 
-Abra o navegador (Chrome, Edge ou Firefox) e acesse o endereço do app.
-Nada para instalar. Nada para configurar.
+### Passo 1 — Clone o repositório
 
-### Passo 2 — Cole a URL e Escaneie
+```bash
+git clone https://github.com/guilherme-machado-ceo/hubstry-compliance-app.git
+cd hubstry-compliance-app
+```
 
-Na tela principal, localize o campo de texto e cole a URL completa
-do site que deseja auditar (ex.: `https://www.sualoja.com.br`).
-Clique em **"Escanear"**. A análise leva entre 5 e 30 segundos.
+### Passo 2 — Instale e rode
 
-### Passo 3 — Analise o Resultado
+```bash
+pnpm install
+pnpm db:setup:dev
+pnpm dev
+```
 
-O relatório de conformidade aparece automaticamente com:
+> O comando `pnpm db:setup:dev` cria o banco SQLite local automaticamente.
+> O comando `pnpm dev` sobe o frontend na porta **5173** e o backend na porta **3000**.
+> O modo dev usa autenticação bypassada (`BYPASS_AUTH=true`) — nenhum login necessário.
+
+### Passo 3 — Abra no navegador
+
+Acesse **http://localhost:5173**
+
+Cole a URL do site que deseja auditar e clique em **"Escanear"**.
+A análise leva entre 5 e 30 segundos. O relatório aparece com:
+
 - **Score de conformidade** (0 a 100%)
 - **8 pilares da ECA Digital** avaliados individualmente
 - **Cada violação** com descrição clara e recomendação de correção
 
-> **Dica:** Use o plano Free (3 scans/mês) para testar os sites mais críticos
-> do seu negócio. Scans reiniciam no dia 1º de cada mês.
+> **Dica:** O plano Free permite 3 scans por mês. Scans reiniciam no dia 1º de cada mês.
 
 ---
 
@@ -117,29 +132,7 @@ O Hubstry Compliance respeita integralmente a LGPD (Lei 13.709/2018):
 
 ---
 
-## Desenvolvimento Local
-
-### Pré-requisitos
-- Node.js 22+
-- pnpm 10+
-- ~1GB de espaço em disco disponível
-
-### Quick Start (5 minutos, sem configuração)
-
-```bash
-git clone https://github.com/guilherme-machado-ceo/hubstry-compliance-app.git
-cd hubstry-compliance-app
-pnpm install
-pnpm db:setup:dev
-pnpm dev
-```
-
-Acesse **http://localhost:5173**
-
-O modo dev usa autenticação bypassed automaticamente (`BYPASS_AUTH=true`)
-— nenhum login necessário para avaliar o produto.
-
-### Variáveis de ambiente
+## Variáveis de ambiente
 
 Crie `.env.development` na raiz com:
 
