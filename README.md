@@ -1,149 +1,179 @@
-# GuruDev Core · Hubstry-DeepTech
+# 🛡️ Hubstry Compliance
 
-> **Idioma**: **Português** | [English](README_EN.md)
+**Scanner de conformidade digital para a era da ECA Digital (Lei 15.211/2025)**
 
-**GuruDev** é uma linguagem de programação holística e ontológica, criada integralmente por **Guilherme Gonçalves Machado** — desde a concepção teórica até a arquitetura completa, incluindo a invenção da **GuruMatrix** (álgebra hexarrelacional π√f(A)) e toda a fundamentação ontológica que diferencia a linguagem. Desenvolvida sob o guarda-chuva da deep tech **Hubstry-DeepTech**, GuruDev não é um "port" ou wrapper de nenhuma linguagem existente — é uma criação original, construída do zero.
-
----
-
-## Visão
-
-GuruDev integra linguística, inteligência artificial, epistemologia e engenharia de software para criar um paradigma de programação **multimodal e semântico**, alinhado às demandas da próxima geração de sistemas computacionais. Sua sintaxe única de blocos ontológicos, anotações semânticas e interoperabilidade multilíngue a diferencia de qualquer outra linguagem de programação existente.
-
-A ideia central é usar GuruDev com IA para que a máquina capture nível semântico — transcendendo a execução puramente sintática e alcançando compreensão ontológica do código.
+Desenvolvido por [Hubstry Deep Tech](https://hubstry.dev) — deep tech estratégica
+brasileira com foco em soberania tecnológica, IA simbólica e compliance digital.
 
 ---
 
-## O Diferencial Ontológico
+## Sobre a Hubstry
 
-GuruDev não é "Python em português". É uma linguagem com identidade própria, fundamentada em três pilares acadêmicos publicados no Zenodo:
+A **Hubstry Deep Tech** é uma startup de tecnologia profunda fundada por
+Guilherme Gonçalves Machado, com sede no Rio de Janeiro. Desenvolvemos
+tecnologias proprietárias de alto impacto, posicionadas como ativos de
+soberania tecnológica nacional.
 
-### 1. Programação Comparada — Fundamentos Teóricos
-A linguagem se baseia na análise estrutural de 15+ linguagens de programação, extraindo padrões semânticos universais para criar uma gramática que é simultaneamente acessível e expressiva.
+Atuamos em três frentes:
 
-📄 **doi:** [10.5281/zenodo.20028887](https://doi.org/10.5281/zenodo.20028887)
+**B2B — Inovação Corporativa com Propósito**
+Empresas de tecnologia, educação e segurança contratam a Hubstry para desenvolver
+IA simbólica e interpretação semântica, criar soluções de interoperabilidade entre
+linguagens e sistemas, e formar equipes com pensamento interdisciplinar.
 
-### 2. IMIP — Interface de Múltiplas Interpretações Paramétricas
-O **DISPATCH_ON_HERMENEUTICS** (§4.3 do IMIP) define 7 níveis de interpretação para texto computacional, permitindo que a mesma expressão seja compreendida em múltiplas camadas semânticas. A **Contenção Constitucional** (§5.5) restringe tokens por instância, garantindo segurança ontológica.
+**B2G — Soberania Tecnológica e Inovação Pública**
+Governos e instituições estratégicas contam com a Hubstry para desenvolver
+tecnologia nacional com identidade própria, fortalecer a educação técnica e
+acelerar a transformação digital com ética e profundidade.
 
-📄 **doi:** [10.5281/zenodo.19772798](https://doi.org/10.5281/zenodo.19772798)
+**P&D — Hub de Tecnologia Proprietária**
+Atuamos na antecipação de rotas tecnológicas em horizontes de 3 a 5 anos,
+reduzindo risco, custo e tempo no desenvolvimento de tecnologias emergentes
+antes que se tornem padrão de mercado.
 
-### 3. π√f(A) — Álgebra Hexarrelacional (GuruMatrix)
-A **GuruMatrix** é um tensor de 5 dimensões que rastreia operações por categoria, semântica e nível de interpretação — a estrutura de dados central que dá poder à máquina de capturar nível semântico. Este trabalho também explora a interseção com computação quântica.
-
-📄 **doi:** [10.5281/zenodo.19775021](https://doi.org/10.5281/zenodo.19775021)
-📄 **doi:** [10.5281/zenodo.18776401](https://doi.org/10.5281/zenodo.18776401)
-
----
-
-## Sintaxe Ontológica — O Motor
-
-A sintaxe da GuruDev permite **blocos ontológicos** com capacidade de subescrita, compensação e interoperabilidade:
-
-| Construto | Sintaxe | Descrição |
-|---|---|---|
-| Bloco | `[$$bloco$$]` ... `[$$/bloco$$]` | Unidade ontológica principal |
-| Sobrescrita | `[$$sobrescrita$$]` ... `[$$/sobrescrita$$]` | Redefine comportamento de operações |
-| Código GuruDev | `¡codigo!` ... `!/codigo!` | Código nativo dentro do bloco |
-| Subescrita Python | `¿python?` ... `?/python?` | Interoperabilidade com Python (exec()) |
-| Compensação | `$$compensacao$$` ... `$$/compensacao$$` | Fallback automático em caso de erro |
-| Tratamento de erro | `$$erro]` | Captura falhas com AST executável |
+> A arquitetura original deste produto foi concebida por Guilherme Gonçalves
+> Machado e iterada com ferramentas de IA generativa (Claude, Claude Code,
+> entre outras). Todo o design estratégico, técnico e comercial é propriedade
+> intelectual da Hubstry Deep Tech.
 
 ---
 
-## Verticais de Negócio
+## O Produto
 
-GuruDev foi projetada com foco em quatro verticais estratégicas:
+O Hubstry Compliance é um scanner SaaS que audita sites e aplicações digitais
+contra os 8 pilares da ECA Digital (Lei 15.211/2025), com prazo de conformidade
+obrigatória até janeiro de 2027 (ANPD).
 
-- **Segurança Cibernética** — Blocos ontológicos com contenção constitucional proporcionam segurança em nível semântico, impedindo interpretações não autorizadas de código.
-- **Games** — A multimodalidade da linguagem e a capacidade de redefinir comportamentos via sobrescrita permitem criar sistemas de regras dinâmicos e adaptáveis para engines de jogos.
-- **Interoperabilidade entre Linguagens** — Subescritas permitem executar Python, JavaScript, Rust e outras linguagens dentro de blocos ontológicos, com rastreamento semântico via GuruMatrix.
-- **IA Geral** — A integração nativa com o DISPATCH_ON_HERMENEUTICS permite que modelos de IA operem em múltiplos níveis de interpretação, capturando semântica e não apenas sintaxe.
+### Funcionalidades
+
+- Detecção de dark patterns (roach motel, misdirection, urgência falsa)
+- Detecção de autoplay, infinite scroll e rastreadores de anúncios
+- Verificação de políticas de privacidade e age verification
+- Score de conformidade por domínio auditado
+- Histórico completo de auditorias com detalhamento de violações
+- Relatórios exportáveis (plano Pro)
+
+### Planos
+
+| | Free | Pro | Enterprise |
+|---|---|---|---|
+| Scans/mês | 3 | Ilimitado | Ilimitado |
+| Relatório PDF | — | ✓ | ✓ |
+| Acesso API | — | — | ✓ |
+| Suporte | — | Email | Prioritário |
 
 ---
 
-## Estado Atual do Projeto (Maio 2026)
+## Teste em 3 Passos (Sem TI, Sem Instalação)
 
-### Funcionalidades Implementadas
-- **38/38 testes passando** — suite completa de testes automatizados
-- **Lexer (PLY)** — máquina de estados com 9 estados léxicos dedicados
-- **Parser (PLY)** — gramática completa incluindo blocos ontológicos
-- **Interpretador** — execução completa com motor ontológico ativo
-- **REPL interativo** — modo read-eval-print com auto-finalização
-- **CLI** — `gurudev run`, `gurudev test`, `gurudev repl`
-- **Métodos String** (18) — `tamanho()`, `maiusculo()`, `minusculo()`, `contem()`, `substituir()`, `fatiar()`, `dividir()`, `remover_espacos()`, `inverter()`, `repetir()`, `comeca_com()`, `termina_com()`, `indice_de()`, `ultima_posicao()`, `para_maiusculo()`, `para_minusculo()`, `eh_numero()`, `eh_vazio()`
-- **Métodos Array** (17) — `adicionar()`, `remover()`, `tamanho()`, `contem()`, `indice_de()`, `ordenar()`, `inverter()`, `fatiar()`, `juntar()`, `copiar()`, `limpar()`, `primeiro()`, `ultimo()`, `mapa()`, `filtrar()`, `reduzir()`, `plano()`
-- **Classes** — `isto`, `this`, `iniciar()`, propriedades, métodos
-- **Motor Ontológico** — blocos, subescritas, compensação ativos
+Você não precisa ser desenvolvedor para testar o Hubstry Compliance.
+São 3 passos simples, direto no navegador:
 
-### Instalação
+### Passo 1 — Acesse
+
+Abra o navegador (Chrome, Edge ou Firefox) e acesse o endereço do app.
+Nada para instalar. Nada para configurar.
+
+### Passo 2 — Cole a URL e Escaneie
+
+Na tela principal, localize o campo de texto e cole a URL completa
+do site que deseja auditar (ex.: `https://www.sualoja.com.br`).
+Clique em **"Escanear"**. A análise leva entre 5 e 30 segundos.
+
+### Passo 3 — Analise o Resultado
+
+O relatório de conformidade aparece automaticamente com:
+- **Score de conformidade** (0 a 100%)
+- **8 pilares da ECA Digital** avaliados individualmente
+- **Cada violação** com descrição clara e recomendação de correção
+
+> **Dica:** Use o plano Free (3 scans/mês) para testar os sites mais críticos
+> do seu negócio. Scans reiniciam no dia 1º de cada mês.
+
+---
+
+## Conformidade com a LGPD
+
+O Hubstry Compliance respeita integralmente a LGPD (Lei 13.709/2018):
+
+- **Sem retenção de HTML:** O conteúdo das páginas analisadas é processado em memória
+  e descartado após a análise. Nenhum código-fonte de terceiros é armazenado.
+- **Retenção automática:** Resultados de auditoria são excluídos automaticamente após
+  90 dias (job diário de retenção).
+- **Direito ao esquecimento:** O usuário pode excluir qualquer auditoria individual
+  ou solicitar a exclusão completa dos seus dados a qualquer momento (Art. 18, III, LGPD).
+- **Endpoint de exclusão:** `gdpr.deleteAccount` para exclusão completa dos dados.
+
+---
+
+## Stack Tecnológico
+
+- **Frontend**: React 19 + Vite 5 + Tailwind CSS 4 + shadcn/ui
+- **Backend**: Express 5 + tRPC 11 + Drizzle ORM
+- **Banco de dados**: SQLite (desenvolvimento)
+- **Pagamentos**: Stripe
+- **Deploy**: Vercel
+- **Autenticação**: GitHub OAuth
+
+---
+
+## Desenvolvimento Local
+
+### Pré-requisitos
+- Node.js 22+
+- pnpm 10+
+- ~1GB de espaço em disco disponível
+
+### Quick Start (5 minutos, sem configuração)
 
 ```bash
-git clone https://github.com/Hubstry-DeepTech/gurudev-core.git
-cd gurudev-core
-python -m pip install -e .
+git clone https://github.com/guilherme-machado-ceo/hubstry-compliance-app.git
+cd hubstry-compliance-app
+pnpm install
+pnpm db:setup:dev
+pnpm dev
 ```
 
-### Uso
+Acesse **http://localhost:5173**
 
-```bash
-# Executar arquivo .guru
-gurudev run examples/calc.guru
+O modo dev usa autenticação bypassed automaticamente (`BYPASS_AUTH=true`)
+— nenhum login necessário para avaliar o produto.
 
-# Exemplo ontológico
-gurudev run examples/ontologico.guru
+### Variáveis de ambiente
 
-# REPL interativo
-gurudev repl
+Crie `.env.development` na raiz com:
 
-# Suite de testes
-gurudev test
+```env
+NODE_ENV=development
+BYPASS_AUTH=true
+DATABASE_URL=file:./dev.db
+DATABASE_PROVIDER=sqlite
+JWT_SECRET=qualquer-string-longa-para-dev
+STRIPE_SECRET_KEY=sk_test_placeholder_dev
+STRIPE_WEBHOOK_SECRET=whsec_placeholder_dev
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder_dev
+VITE_APP_URL=http://localhost:5173
+APP_URL=http://localhost:5173
+VITE_API_URL=http://localhost:3001
 ```
 
----
+### Login real com GitHub OAuth (opcional)
 
-## Estrutura do Repositório
-
-```
-gurudev-core/
-├── src/
-│   ├── lexer/                  # Máquina de estados PLY
-│   ├── parser.py               # Gramática com blocos ontológicos
-│   ├── interpreter.py          # Interpretador + motor ontológico
-│   ├── ast_nodes.py            # Nós da AST
-│   └── repl.py                 # REPL interativo
-├── examples/
-│   ├── calc.guru               # Exemplo String/Array methods
-│   └── ontologico.guru         # Exemplo motor ontológico
-├── run_interpreter_test.py     # Suite de testes (38)
-├── pyproject.toml
-├── README.md                   # Este arquivo (PT-BR)
-├── README_EN.md                # Versão em inglês
-└── LICENSE                     # Business Source License 1.1
-```
-
----
-
-## Links Oficiais
-
-- **Site Hubstry:** [www.hubstry.dev](https://www.hubstry.dev)
-- **Site GuruDev:** [gurudev-tech.site](https://gurudev-tech.site)
-- **Repositório:** [github.com/Hubstry-DeepTech/gurudev-core](https://github.com/Hubstry-DeepTech/gurudev-core)
-
----
-
-## Sobre o Criador
-
-**Guilherme Gonçalves Machado** é o criador original da GuruDev — desde a concepção da ideia, passando pela arquitetura, design da linguagem, invenção da GuruMatrix, e toda a fundamentação teórica publicada nos papers acadêmicos. Toda a propriedade intelectual da linguagem, incluindo sua gramática, sintaxe ontológica, motor de interpretação e estruturas de dados, é criação original sua.
+Para testar o fluxo de autenticação completo,
+consulte [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
 
 ---
 
 ## Licença
 
-Este projeto está licenciado sob a **Business Source License 1.1 (BSL 1.1)**.
+Este software é distribuído sob a **Elastic License 2.0 (ELv2)**.
 
-O uso **não comercial** (pesquisa acadêmica, educação, projetos pessoais) é livre e encorajado. O uso comercial (venda, licenciamento, SaaS, integração em produtos comerciais) requer autorização expressa do criador.
+Uso pessoal, avaliação e contribuições são permitidos. É **proibido** oferecer
+este software como serviço gerenciado (SaaS) sem autorização expressa da Hubstry.
 
-Consulte o arquivo [LICENSE](LICENSE) para os termos completos.
+Para licenciamento comercial, parcerias ou uso enterprise:
+📧 guilhermemachado@hubstry.onmicrosoft.com
 
-© 2024-2026 Guilherme Gonçalves Machado · Hubstry-DeepTech. Todos os direitos reservados.
+---
+
+© 2026 Hubstry Deep Tech · Guilherme Gonçalves Machado · Rio de Janeiro, Brasil
