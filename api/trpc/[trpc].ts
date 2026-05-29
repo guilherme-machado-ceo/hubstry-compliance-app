@@ -53,7 +53,8 @@ export default async function handler(
         createContext({
           req: req as any,
           res: res as any,
-        }),
+          info: { isBatchCall: false, calls: [] },
+        } as any),
     });
 
     // Forward the Fetch Response to Vercel's response

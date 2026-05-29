@@ -97,7 +97,7 @@ export const appRouter = router({
                 title: violation.title,
                 description: violation.description,
                 recommendation: violation.recommendation,
-                elementSelector: violation.elementSelector,
+                elementSelector: violation.elementSelector ?? null,
               });
             }
 
