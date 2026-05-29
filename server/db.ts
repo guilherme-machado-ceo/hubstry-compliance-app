@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
 // Import MySQL schema for TypeScript types (canonical type source)
 import type { Audit, InsertUser, Violation } from "../drizzle/schema";
 import * as mysqlSchema from "../drizzle/schema";
@@ -293,4 +293,110 @@ export async function getAuditViolations(auditId: number): Promise<Violation[]> 
     .from(violations)
     .where(eq(violations.auditId, auditId))
     .orderBy(violations.severity) as Promise<Violation[]>;
+}
+
+// ── LGPD: Exclusão de dados do titular ──────────────────────────────
+
+/**
+ * Exclui uma auditoria específica e todas as suas violações associadas.
+ * Atende ao direito de exclusão (Art. 18, LGPD).
+ */
+export async function deleteAudit(auditId: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits, violations, reports } = _schema;
+
+  // Verifica se a auditoria pertence ao usuário
+  const audit = await db
+    .select()
+    .from(audits)
+    .where(and(eq(audits.id, auditId), eq(audits.userId, userId)))
+    .limit(1);
+
+  if (audit.length === 0) {
+    throw new Error("Auditoria não encontrada ou sem permissão");
+  }
+
+  // Remove violações associadas
+  await db.delete(violations).where(eq(violations.auditId, auditId));
+
+  // Remove relatórios associados
+  await db.delete(reports).where(eq(reports.auditId, auditId));
+
+  // Remove a auditoria
+  await db.delete(audits).where(eq(audits.id, auditId));
+
+  console.log(`[LGPD] Auditoria ${auditId} excluída por usuário ${userId}`);
+}
+
+/**
+ * Exclui TODOS os dados de um usuário (auditorias, violações, relatórios, assinatura).
+ * Atende ao direito ao esquecimento completo (Art. 18, III, LGPD).
+ */
+export async function deleteUserData(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits, violations, reports, subscriptions, users } = _schema;
+
+  // Busca IDs das auditorias do usuário
+  const userAudits = await db
+    .select({ id: audits.id })
+    .from(audits)
+    .where(eq(audits.userId, userId));
+
+  const auditIds = userAudits.map((a) => a.id);
+
+  // Remove violações de todas as auditorias
+  for (const auditId of auditIds) {
+    await db.delete(violations).where(eq(violations.auditId, auditId));
+    await db.delete(reports).where(eq(reports.auditId, auditId));
+  }
+
+  // Remove auditorias
+  await db.delete(audits).where(eq(audits.userId, userId));
+
+  // Remove assinatura
+  await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+
+  console.log(`[LGPD] Todos os dados do usuário ${userId} foram excluídos (esquecimento completo)`);
+}
+
+/**
+ * Exclui auditorias completadas com mais de N dias.
+ * Executado automaticamente pelo job de retenção.
+ */
+export async function deleteOldAudits(daysOld: number = 90): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits, violations, reports } = _schema;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysOld);
+
+  // Busca auditorias antigas completadas
+  const oldAudits = await db
+    .select({ id: audits.id })
+    .from(audits)
+    .where(
+      and(
+        eq(audits.status, "completed"),
+        lt(audits.createdAt, cutoff)
+      )
+    );
+
+  let deleted = 0;
+  for (const audit of oldAudits) {
+    await db.delete(violations).where(eq(violations.auditId, audit.id));
+    await db.delete(reports).where(eq(reports.auditId, audit.id));
+    await db.delete(audits).where(eq(audits.id, audit.id));
+    deleted++;
+  }
+
+  if (deleted > 0) {
+    console.log(`[LGPD] Retenção: ${deleted} auditorias com mais de ${daysOld} dias excluídas`);
+  }
+
+  return deleted;
 }

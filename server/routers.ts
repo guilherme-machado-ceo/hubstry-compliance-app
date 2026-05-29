@@ -135,6 +135,24 @@ export const appRouter = router({
           errorMessage: (audit as Record<string, unknown>)["errorMessage"] as string | null ?? null,
         };
       }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteAudit(input.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
+
+  // ── LGPD: Endpoints de exclusão de dados (Art. 18, LGPD) ──────────
+  gdpr: router({
+    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.deleteUserData(ctx.user.id);
+      // Limpa o cookie de sessão
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true, message: "Todos os seus dados foram excluídos conforme Art. 18, III, da LGPD." };
+    }),
   }),
 });
 
