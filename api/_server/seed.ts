@@ -13,7 +13,7 @@ import {
   subscriptions,
   audits,
   violations,
-} from "../drizzle/schema.sqlite";
+} from "../../drizzle/schema.sqlite";
 
 const dbUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 const client = createClient({ url: dbUrl });

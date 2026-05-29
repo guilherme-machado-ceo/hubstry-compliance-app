@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "pnpm install && node build-api.mjs && vite build",
+  "buildCommand": "pnpm install && vite build",
   "installCommand": "pnpm install",
   "framework": null,
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.js": {
-      "runtime": "@vercel/node@5.0.0"
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@5.7.7"
     }
   },
   "rewrites": [

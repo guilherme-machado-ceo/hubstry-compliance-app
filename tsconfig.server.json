@@ -12,6 +12,6 @@
     "noImplicitAny": false,
     "strictNullChecks": false
   },
-  "include": ["server/**/*.ts", "shared/**/*.ts"],
-  "exclude": ["node_modules", "server/seed.ts", "server/stripe-webhook.ts", "server/_core/vite.ts"]
+  "include": ["api/_server/**/*.ts", "api/_shared/**/*.ts"],
+  "exclude": ["node_modules", "api/_server/seed.ts", "api/_server/stripe-webhook.ts", "api/_server/_core/vite.ts"]
 }
