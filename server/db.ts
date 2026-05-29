@@ -30,7 +30,15 @@ async function initDb() {
     if (_provider === "sqlite") {
       const { drizzle } = await import("drizzle-orm/libsql");
       const { createClient } = await import("@libsql/client");
-      const client = createClient({ url });
+
+      // Suporta tanto arquivo local quanto Turso (libsql://)
+      const authToken = process.env.DATABASE_AUTH_TOKEN;
+      const clientOpts: { url: string; authToken?: string } = { url };
+      if (authToken) {
+        clientOpts.authToken = authToken;
+      }
+
+      const client = createClient(clientOpts);
       _db = drizzle(client);
       _schema = await import("../drizzle/schema.sqlite");
     } else {
@@ -365,7 +373,7 @@ export async function deleteUserData(userId: number): Promise<void> {
 
 /**
  * Exclui auditorias completadas com mais de N dias.
- * Executado automaticamente pelo job de retenção.
+ * Executado automaticamente pelo job de retenção (Vercel Cron ou node-cron).
  */
 export async function deleteOldAudits(daysOld: number = 90): Promise<number> {
   const db = await getDb();

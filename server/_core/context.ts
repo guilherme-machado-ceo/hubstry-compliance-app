@@ -25,12 +25,15 @@ const DEV_MOCK_USER: User = {
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
-  if (process.env.BYPASS_AUTH === "true" && process.env.NODE_ENV === "production") {
-    throw new Error("[FATAL] BYPASS_AUTH não pode ser ativado em produção.");
-  }
-
   // Dev bypass: skips GitHub OAuth entirely — use BYPASS_AUTH=true in .env.development
+  // On Vercel, set BYPASS_AUTH=true + VERCEL_DEMO_MODE=true for demo deployments
   if (process.env.BYPASS_AUTH === "true") {
+    if (process.env.NODE_ENV === "production" && process.env.VERCEL_DEMO_MODE !== "true") {
+      throw new Error("[FATAL] BYPASS_AUTH não pode ser ativado em produção sem VERCEL_DEMO_MODE=true.");
+    }
+    if (process.env.VERCEL_DEMO_MODE === "true") {
+      console.warn("[AUTH] Modo demo ativo — BYPASS_AUTH habilitado em produção (VERCEL_DEMO_MODE=true)");
+    }
     const devUser = await db.getUserByOpenId("dev-user-001").catch(() => undefined);
     return {
       req: opts.req,

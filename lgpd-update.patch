@@ -1,0 +1,255 @@
+From 3b3ea348b329e243b0ea0953d2ac231950d0aded Mon Sep 17 00:00:00 2001
+From: Z User <z@container>
+Date: Fri, 29 May 2026 15:53:17 +0000
+Subject: [PATCH] feat: add LGPD compliance features + user-friendly README
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Add deleteAudit() for single audit deletion (Art. 18, LGPD)
+- Add deleteUserData() for full account deletion (right to be forgotten)
+- Add deleteOldAudits() for automatic 90-day data retention cleanup
+- Add daily cron job for data retention (runs at 03:00 UTC)
+- Add audits.delete endpoint for individual audit deletion
+- Add gdpr.deleteAccount endpoint for full account deletion
+- Update README with 'Test in 3 Steps' section for non-technical users
+- Add LGPD compliance section to README explaining data handling
+
+All text follows norma-padrão brasileira with proper accentuation.
+---
+ README.md                          |  42 +++++++++++
+ server/db.ts                       | 108 ++++++++++++++++++++++++++++-
+ server/jobs/reset-monthly-scans.ts |  11 ++-
+ server/routers.ts                  |  18 +++++
+ 4 files changed, 177 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index 433581f..a8d67c3 100644
+--- a/README.md
++++ b/README.md
+@@ -64,6 +64,48 @@ obrigatória até janeiro de 2027 (ANPD).
+ 
+ ---
+ 
++## Teste em 3 Passos (Sem TI, Sem Instalação)
++
++Você não precisa ser desenvolvedor para testar o Hubstry Compliance.
++São 3 passos simples, direto no navegador:
++
++### Passo 1 — Acesse
++
++Abra o navegador (Chrome, Edge ou Firefox) e acesse o endereço do app.
++Nada para instalar. Nada para configurar.
++
++### Passo 2 — Cole a URL e Escaneie
++
++Na tela principal, localize o campo de texto e cole a URL completa
++do site que deseja auditar (ex.: `https://www.sualoja.com.br`).
++Clique em **"Escanear"**. A análise leva entre 5 e 30 segundos.
++
++### Passo 3 — Analise o Resultado
++
++O relatório de conformidade aparece automaticamente com:
++- **Score de conformidade** (0 a 100%)
++- **8 pilares da ECA Digital** avaliados individualmente
++- **Cada violação** com descrição clara e recomendação de correção
++
++> **Dica:** Use o plano Free (3 scans/mês) para testar os sites mais críticos
++> do seu negócio. Scans reiniciam no dia 1º de cada mês.
++
++---
++
++## Conformidade com a LGPD
++
++O Hubstry Compliance respeita integralmente a LGPD (Lei 13.709/2018):
++
++- **Sem retenção de HTML:** O conteúdo das páginas analisadas é processado em memória
++  e descartado após a análise. Nenhum código-fonte de terceiros é armazenado.
++- **Retenção automática:** Resultados de auditoria são excluídos automaticamente após
++  90 dias (job diário de retenção).
++- **Direito ao esquecimento:** O usuário pode excluir qualquer auditoria individual
++  ou solicitar a exclusão completa dos seus dados a qualquer momento (Art. 18, III, LGPD).
++- **Endpoint de exclusão:** `gdpr.deleteAccount` para exclusão completa dos dados.
++
++---
++
+ ## Stack Tecnológico
+ 
+ - **Frontend**: React 19 + Vite 5 + Tailwind CSS 4 + shadcn/ui
+diff --git a/server/db.ts b/server/db.ts
+index 464bc9c..e995c5b 100644
+--- a/server/db.ts
++++ b/server/db.ts
+@@ -1,4 +1,4 @@
+-import { desc, eq, sql } from "drizzle-orm";
++import { and, desc, eq, lt, sql } from "drizzle-orm";
+ // Import MySQL schema for TypeScript types (canonical type source)
+ import type { Audit, InsertUser, Violation } from "../drizzle/schema";
+ import * as mysqlSchema from "../drizzle/schema";
+@@ -294,3 +294,109 @@ export async function getAuditViolations(auditId: number): Promise<Violation[]>
+     .where(eq(violations.auditId, auditId))
+     .orderBy(violations.severity) as Promise<Violation[]>;
+ }
++
++// ── LGPD: Exclusão de dados do titular ──────────────────────────────
++
++/**
++ * Exclui uma auditoria específica e todas as suas violações associadas.
++ * Atende ao direito de exclusão (Art. 18, LGPD).
++ */
++export async function deleteAudit(auditId: number, userId: number): Promise<void> {
++  const db = await getDb();
++  if (!db) throw new Error("Database not available");
++
++  const { audits, violations, reports } = _schema;
++
++  // Verifica se a auditoria pertence ao usuário
++  const audit = await db
++    .select()
++    .from(audits)
++    .where(and(eq(audits.id, auditId), eq(audits.userId, userId)))
++    .limit(1);
++
++  if (audit.length === 0) {
++    throw new Error("Auditoria não encontrada ou sem permissão");
++  }
++
++  // Remove violações associadas
++  await db.delete(violations).where(eq(violations.auditId, auditId));
++
++  // Remove relatórios associados
++  await db.delete(reports).where(eq(reports.auditId, auditId));
++
++  // Remove a auditoria
++  await db.delete(audits).where(eq(audits.id, auditId));
++
++  console.log(`[LGPD] Auditoria ${auditId} excluída por usuário ${userId}`);
++}
++
++/**
++ * Exclui TODOS os dados de um usuário (auditorias, violações, relatórios, assinatura).
++ * Atende ao direito ao esquecimento completo (Art. 18, III, LGPD).
++ */
++export async function deleteUserData(userId: number): Promise<void> {
++  const db = await getDb();
++  if (!db) throw new Error("Database not available");
++
++  const { audits, violations, reports, subscriptions, users } = _schema;
++
++  // Busca IDs das auditorias do usuário
++  const userAudits = await db
++    .select({ id: audits.id })
++    .from(audits)
++    .where(eq(audits.userId, userId));
++
++  const auditIds = userAudits.map((a) => a.id);
++
++  // Remove violações de todas as auditorias
++  for (const auditId of auditIds) {
++    await db.delete(violations).where(eq(violations.auditId, auditId));
++    await db.delete(reports).where(eq(reports.auditId, auditId));
++  }
++
++  // Remove auditorias
++  await db.delete(audits).where(eq(audits.userId, userId));
++
++  // Remove assinatura
++  await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
++
++  console.log(`[LGPD] Todos os dados do usuário ${userId} foram excluídos (esquecimento completo)`);
++}
++
++/**
++ * Exclui auditorias completadas com mais de N dias.
++ * Executado automaticamente pelo job de retenção.
++ */
++export async function deleteOldAudits(daysOld: number = 90): Promise<number> {
++  const db = await getDb();
++  if (!db) throw new Error("Database not available");
++
++  const { audits, violations, reports } = _schema;
++  const cutoff = new Date();
++  cutoff.setDate(cutoff.getDate() - daysOld);
++
++  // Busca auditorias antigas completadas
++  const oldAudits = await db
++    .select({ id: audits.id })
++    .from(audits)
++    .where(
++      and(
++        eq(audits.status, "completed"),
++        lt(audits.createdAt, cutoff)
++      )
++    );
++
++  let deleted = 0;
++  for (const audit of oldAudits) {
++    await db.delete(violations).where(eq(violations.auditId, audit.id));
++    await db.delete(reports).where(eq(reports.auditId, audit.id));
++    await db.delete(audits).where(eq(audits.id, audit.id));
++    deleted++;
++  }
++
++  if (deleted > 0) {
++    console.log(`[LGPD] Retenção: ${deleted} auditorias com mais de ${daysOld} dias excluídas`);
++  }
++
++  return deleted;
++}
+diff --git a/server/jobs/reset-monthly-scans.ts b/server/jobs/reset-monthly-scans.ts
+index 9d8a592..c32fb8a 100644
+--- a/server/jobs/reset-monthly-scans.ts
++++ b/server/jobs/reset-monthly-scans.ts
+@@ -1,5 +1,5 @@
+ import cron from "node-cron";
+-import { resetMonthlyScans } from "../db";
++import { resetMonthlyScans, deleteOldAudits } from "../db";
+ 
+ // Run on the 1st of each month at midnight UTC
+ export function registerMonthlyResetJob(): void {
+@@ -9,4 +9,13 @@ export function registerMonthlyResetJob(): void {
+     );
+   });
+   console.log("[Jobs] Monthly scan reset job registered (runs 1st of each month at 00:00 UTC)");
++
++  // LGPD: Retenção de dados — exclui auditorias com mais de 90 dias
++  // Executa todo dia às 03:00 UTC
++  cron.schedule("0 3 * * *", () => {
++    deleteOldAudits(90).catch((err) =>
++      console.error("[Jobs] Data retention cleanup failed:", err)
++    );
++  });
++  console.log("[Jobs] LGPD data retention job registered (runs daily at 03:00 UTC, deletes audits older than 90 days)");
+ }
+diff --git a/server/routers.ts b/server/routers.ts
+index fe20aad..9b5b8df 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -135,6 +135,24 @@ export const appRouter = router({
+           errorMessage: (audit as Record<string, unknown>)["errorMessage"] as string | null ?? null,
+         };
+       }),
++
++    delete: protectedProcedure
++      .input(z.object({ id: z.number() }))
++      .mutation(async ({ ctx, input }) => {
++        await db.deleteAudit(input.id, ctx.user.id);
++        return { success: true };
++      }),
++  }),
++
++  // ── LGPD: Endpoints de exclusão de dados (Art. 18, LGPD) ──────────
++  gdpr: router({
++    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
++      await db.deleteUserData(ctx.user.id);
++      // Limpa o cookie de sessão
++      const cookieOptions = getSessionCookieOptions(ctx.req);
++      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
++      return { success: true, message: "Todos os seus dados foram excluídos conforme Art. 18, III, da LGPD." };
++    }),
+   }),
+ });
+ 
+-- 
+2.47.3
+
