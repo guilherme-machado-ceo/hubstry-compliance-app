@@ -5,26 +5,26 @@
   "framework": null,
   "outputDirectory": "dist",
   "functions": {
-    "api-dist/**/*.js": {
+    "api/**/*.js": {
       "runtime": "@vercel/node@5.0.0"
     }
   },
   "rewrites": [
     {
       "source": "/api/trpc/:path*",
-      "destination": "/api-dist/trpc/[trpc]"
+      "destination": "/api/trpc/[trpc]"
     },
     {
       "source": "/api/auth/:path*",
-      "destination": "/api-dist/auth/[auth]"
+      "destination": "/api/auth/[auth]"
     },
     {
       "source": "/api/oauth/:path*",
-      "destination": "/api-dist/oauth/[oauth]"
+      "destination": "/api/oauth/[oauth]"
     },
     {
       "source": "/api/stripe/:path*",
-      "destination": "/api-dist/stripe/[stripe]"
+      "destination": "/api/stripe/[stripe]"
     },
     {
       "source": "/(.*)",
@@ -33,7 +33,7 @@
   ],
   "crons": [
     {
-      "path": "/api-dist/cron/cleanup",
+      "path": "/api/cron/cleanup",
       "schedule": "0 3 * * *"
     }
   ]

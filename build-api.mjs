@@ -14,7 +14,7 @@ await build({
   platform: 'node',
   target: 'node20',
   format: 'esm',
-  outdir: path.join(root, 'api-dist'),
+  outdir: path.join(root, 'api'),
   outbase: path.join(root, 'api'),
   external: [
     '@libsql/client',
