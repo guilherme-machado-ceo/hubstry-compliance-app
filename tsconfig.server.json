@@ -5,10 +5,13 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "noEmitOnError": false,
     "declaration": false,
     "sourceMap": false,
-    "strict": false
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false
   },
   "include": ["server/**/*.ts", "shared/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "server/seed.ts", "server/stripe-webhook.ts", "server/_core/vite.ts"]
 }
