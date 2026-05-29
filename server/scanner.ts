@@ -7,7 +7,7 @@
  * jsdom cannot resolve its optional native bindings.
  */
 
-import { ECA_PILLARS } from "@shared/pillars";
+import { ECA_PILLARS } from "../shared/pillars";
 
 export interface ScanResult {
   violations: ViolationDetail[];
