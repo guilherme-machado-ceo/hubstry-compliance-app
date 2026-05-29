@@ -19,7 +19,7 @@
       "@/types/*": ["./types/*"],
       "@/utils/*": ["./utils/*"],
       "@/prisma/*": ["./prisma/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./api/_shared/*"]
     },
 
     // Emissão
