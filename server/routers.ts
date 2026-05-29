@@ -161,8 +161,7 @@ export const appRouter = router({
           id: audit.id,
           status: audit.status,
           complianceScore: audit.complianceScore,
-          errorMessage:
-            (audit as { errorMessage?: string | null })["errorMessage"] ?? null,
+          errorMessage: ((audit as Record<string, unknown>)["errorMessage"] ?? null) as string | null,
         };
       }),
 
