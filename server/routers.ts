@@ -98,6 +98,7 @@ export const appRouter = router({
                 description: violation.description,
                 recommendation: violation.recommendation,
                 elementSelector: violation.elementSelector ?? null,
+                lineNumber: null,
               });
             }
 
