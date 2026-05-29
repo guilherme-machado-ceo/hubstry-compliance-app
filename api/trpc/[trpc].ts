@@ -1,75 +1,88 @@
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { appRouter } from "../../server/routers";
-import { createContext } from "../../server/_core/context";
+import superjson from "superjson";
 
 /**
  * Vercel serverless entry point for all tRPC requests.
- * Uses the Fetch adapter instead of Express to avoid runtime
- * incompatibilities between Express 5 and Vercel serverless.
+ *
+ * Uses appRouter.createCaller() directly — no Express or Fetch adapter.
+ * This avoids all adapter-related compatibility issues with
+ * Express 5 / Vercel serverless / tRPC v11.
  */
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
   try {
-    // Build the full URL that tRPC expects
-    const proto =
-      (typeof req.headers["x-forwarded-proto"] === "string"
-        ? req.headers["x-forwarded-proto"]
-        : "https") || "https";
-    const host =
-      (typeof req.headers["host"] === "string"
-        ? req.headers["host"]
-        : "localhost") || "localhost";
-    const url = new URL(req.url || "/", `${proto}://${host}`);
+    // Lazy imports — isolates potential module-level crashes
+    const { appRouter } = await import("../../server/routers");
+    const { createContext } = await import("../../server/_core/context");
 
-    // Convert Vercel headers to a plain object
-    const headersInit: Record<string, string> = {};
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (typeof value === "string") {
-        headersInit[key] = value;
-      } else if (Array.isArray(value)) {
-        headersInit[key] = value.join(", ");
+    const ctx = await createContext({
+      req: req as any,
+      res: res as any,
+      info: { isBatchCall: false, calls: [] },
+    } as any);
+
+    const caller = appRouter.createCaller(ctx);
+
+    // Parse procedure path: /api/trpc/auth.me → "auth.me"
+    const url = new URL(
+      req.url || "/",
+      `https://${req.headers["host"] || "localhost"}`,
+    );
+    const procedurePath = url.pathname
+      .replace(/^\/api\/trpc\/?/, "")
+      .split("?")[0];
+
+    // Navigate nested routers: auth.me → caller["auth"]["me"]
+    const parts = procedurePath.split(".").filter(Boolean);
+    let current: unknown = caller;
+    for (const part of parts) {
+      if (
+        current &&
+        typeof current === "object" &&
+        part in (current as Record<string, unknown>)
+      ) {
+        current = (current as Record<string, unknown>)[part];
+      } else {
+        return res.status(404).json({
+          error: `Procedure "${procedurePath}" not found`,
+        });
       }
     }
 
-    // Build Fetch API Request from Vercel request
-    const fetchReq = new Request(url.toString(), {
-      method: req.method || "GET",
-      headers: headersInit,
-      body:
-        req.method !== "GET" && req.method !== "HEAD"
-          ? JSON.stringify(req.body)
-          : undefined,
-    });
-
-    // Use tRPC Fetch adapter (no Express dependency)
-    const response = await fetchRequestHandler({
-      endpoint: "/api/trpc",
-      req: fetchReq,
-      router: appRouter,
-      createContext: () =>
-        createContext({
-          req: req as any,
-          res: res as any,
-          info: { isBatchCall: false, calls: [] },
-        } as any),
-    });
-
-    // Forward the Fetch Response to Vercel's response
-    const body = await response.text();
-    res.status(response.status);
-    response.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== "transfer-encoding") {
-        res.setHeader(key, value);
-      }
-    });
-    res.send(body);
-  } catch (error) {
-    console.error("[tRPC] Handler error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Internal server error" });
+    if (typeof current !== "function") {
+      return res.status(404).json({
+        error: `"${procedurePath}" is not a procedure`,
+      });
     }
+
+    // Parse input from ?input=... query param (superjson encoded)
+    const rawInput = url.searchParams.get("input");
+    const parsedInput = rawInput ? superjson.parse(rawInput) : undefined;
+
+    // Call the procedure
+    const result = await (current as (input?: unknown) => unknown)(
+      parsedInput,
+    );
+
+    // Return tRPC response envelope (compatible with @trpc/client)
+    return res.status(200).json({
+      result: {
+        data: superjson.serialize(result),
+      },
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : String(error);
+    console.error("[tRPC] Handler error:", message);
+
+    // Return tRPC error envelope
+    return res.status(200).json({
+      error: {
+        code: "INTERNAL_SERVER_ERROR" as const,
+        message,
+      },
+    });
   }
 }
