@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { ECA_PILLARS } from "@shared/pillars";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { clearCookieRaw, getOrigin } from "./_core/express5-compat";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
@@ -12,10 +13,14 @@ import { stripeRouter } from "./stripe-router";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      // Use express5-compat clearCookie instead of Express 5's clearCookie
+      clearCookieRaw(ctx.res, COOKIE_NAME, {
+        ...cookieOptions,
+        maxAge: -1,
+      });
       return {
         success: true,
       } as const;
@@ -39,7 +44,9 @@ export const appRouter = router({
       .input(z.object({ url: z.string().url() }))
       .mutation(async ({ ctx, input }) => {
         // Check subscription limits (-1 means unlimited)
-        const subscription = await db.getOrCreateSubscription(ctx.user.id);
+        const subscription = await db.getOrCreateSubscription(
+          ctx.user.id,
+        );
         const isUnlimited = subscription.scansPerMonth === -1;
         if (
           !isUnlimited &&
@@ -47,7 +54,8 @@ export const appRouter = router({
         ) {
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",
-            message: "Limite de scans atingido. Faça upgrade para continuar.",
+            message:
+              "Limite de scans atingido. Faca upgrade para continuar.",
           });
         }
 
@@ -56,18 +64,35 @@ export const appRouter = router({
         const domain = urlObj.hostname;
 
         // Create audit record
-        const result = await db.createAudit(ctx.user.id, input.url, domain);
-        const auditId = (result as any).insertId;
+        const result = await db.createAudit(
+          ctx.user.id,
+          input.url,
+          domain,
+        );
+        const auditId = (result as Record<string, unknown>)["insertId"] as
+          | number
+          | undefined;
 
         // Scan URL asynchronously — increment counter only on success
         scanUrl(input.url)
           .then(async (scanResult) => {
+            if (auditId === undefined) return;
+
             // Increment scan count after successful fetch
             await db.incrementScansUsed(ctx.user.id);
 
             // Store violations
             for (const violation of scanResult.violations) {
-              const violationType = violation.type as "dark_pattern" | "autoplay" | "infinite_scroll" | "ad_tracker" | "lootbox" | "missing_privacy_policy" | "data_collection" | "age_verification" | "other";
+              const violationType = violation.type as
+                | "dark_pattern"
+                | "autoplay"
+                | "infinite_scroll"
+                | "ad_tracker"
+                | "lootbox"
+                | "missing_privacy_policy"
+                | "data_collection"
+                | "age_verification"
+                | "other";
               await db.createViolation(auditId, {
                 type: violationType,
                 severity: violation.severity,
@@ -89,9 +114,13 @@ export const appRouter = router({
             });
           })
           .catch(async (error) => {
+            if (auditId === undefined) return;
             await db.updateAudit(auditId, {
               status: "failed",
-              errorMessage: error instanceof Error ? error.message : "Erro desconhecido",
+              errorMessage:
+                error instanceof Error
+                  ? error.message
+                  : "Erro desconhecido",
             });
           });
 
@@ -103,12 +132,14 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const audit = await db.getAuditById(input.id);
         if (!audit || audit.userId !== ctx.user.id) {
-          throw new Error("Auditoria não encontrada");
+          throw new Error("Auditoria nao encontrada");
         }
         const violations = await db.getAuditViolations(input.id);
 
         const pillars = ECA_PILLARS.map((pillar) => {
-          const pillarViolations = violations.filter((v) => v.type === pillar.id);
+          const pillarViolations = violations.filter(
+            (v) => v.type === pillar.id,
+          );
           return {
             id: pillar.id,
             name: pillar.name,
@@ -126,13 +157,15 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const audit = await db.getAuditById(input.id);
         if (!audit || audit.userId !== ctx.user.id) {
-          throw new Error("Auditoria não encontrada");
+          throw new Error("Auditoria nao encontrada");
         }
         return {
           id: audit.id,
           status: audit.status,
           complianceScore: audit.complianceScore,
-          errorMessage: (audit as Record<string, unknown>)["errorMessage"] as string | null ?? null,
+          errorMessage:
+            (audit as Record<string, unknown>)["errorMessage"] ??
+            null,
         };
       }),
 
@@ -144,14 +177,21 @@ export const appRouter = router({
       }),
   }),
 
-  // ── LGPD: Endpoints de exclusão de dados (Art. 18, LGPD) ──────────
+  // ── LGPD: Endpoints de exclusao de dados (Art. 18, LGPD) ──────────
   gdpr: router({
     deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
       await db.deleteUserData(ctx.user.id);
-      // Limpa o cookie de sessão
+      // Limpa o cookie de sessao
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true, message: "Todos os seus dados foram excluídos conforme Art. 18, III, da LGPD." };
+      clearCookieRaw(ctx.res, COOKIE_NAME, {
+        ...cookieOptions,
+        maxAge: -1,
+      });
+      return {
+        success: true,
+        message:
+          "Todos os seus dados foram excluidos conforme Art. 18, III, da LGPD.",
+      };
     }),
   }),
 });

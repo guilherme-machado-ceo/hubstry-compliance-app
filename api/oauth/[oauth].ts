@@ -3,13 +3,18 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import * as db from "../../server/db";
 import { sdk } from "../../server/_core/sdk";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const code = typeof req.query.code === "string" ? req.query.code : undefined;
-  const state = typeof req.query.state === "string" ? req.query.state : undefined;
+  const code =
+    typeof req.query.code === "string" ? req.query.code : undefined;
+  const state =
+    typeof req.query.state === "string" ? req.query.state : undefined;
 
   if (!code || !state) {
     return res.redirect("/?error=missing_params");
@@ -31,7 +36,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expiresInMs: ONE_YEAR_MS,
     });
 
-    const isSecure = (req.headers["x-forwarded-proto"] as string) === "https";
+    const isSecure =
+      (typeof req.headers["x-forwarded-proto"] === "string"
+        ? req.headers["x-forwarded-proto"]
+        : "https") === "https";
     const cookieParts = [
       `${COOKIE_NAME}=${sessionToken}`,
       "HttpOnly",

@@ -23,18 +23,33 @@ const DEV_MOCK_USER: User = {
 };
 
 export async function createContext(
-  opts: CreateExpressContextOptions
+  opts: CreateExpressContextOptions,
 ): Promise<TrpcContext> {
   // Dev bypass: skips GitHub OAuth entirely — use BYPASS_AUTH=true in .env.development
   // On Vercel, set BYPASS_AUTH=true + VERCEL_DEMO_MODE=true for demo deployments
-  if (process.env.BYPASS_AUTH === "true") {
-    if (process.env.NODE_ENV === "production" && process.env.VERCEL_DEMO_MODE !== "true") {
-      throw new Error("[FATAL] BYPASS_AUTH não pode ser ativado em produção sem VERCEL_DEMO_MODE=true.");
+  const bypassAuth = process.env["BYPASS_AUTH"] === "true";
+  const nodeEnv = process.env["NODE_ENV"];
+  const vercelDemoMode = process.env["VERCEL_DEMO_MODE"];
+
+  if (bypassAuth) {
+    if (nodeEnv === "production" && vercelDemoMode !== "true") {
+      throw new Error(
+        "[FATAL] BYPASS_AUTH nao pode ser ativado em producao sem VERCEL_DEMO_MODE=true.",
+      );
     }
-    if (process.env.VERCEL_DEMO_MODE === "true") {
-      console.warn("[AUTH] Modo demo ativo — BYPASS_AUTH habilitado em produção (VERCEL_DEMO_MODE=true)");
+    if (vercelDemoMode === "true") {
+      console.warn(
+        "[AUTH] Modo demo ativo — BYPASS_AUTH habilitado em producao (VERCEL_DEMO_MODE=true)",
+      );
     }
-    const devUser = await db.getUserByOpenId("dev-user-001").catch(() => undefined);
+
+    let devUser: User | undefined;
+    try {
+      devUser = await db.getUserByOpenId("dev-user-001");
+    } catch {
+      devUser = undefined;
+    }
+
     return {
       req: opts.req,
       res: opts.res,

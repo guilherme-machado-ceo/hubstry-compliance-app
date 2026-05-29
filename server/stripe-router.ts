@@ -3,25 +3,29 @@ import { z } from "zod";
 import Stripe from "stripe";
 import { STRIPE_PRODUCTS, getPlanByStripePrice } from "./stripe-products";
 import * as db from "./db";
+import { getOrigin } from "./_core/express5-compat";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-03-25.dahlia",
-});
+const stripe = new Stripe(
+  process.env["STRIPE_SECRET_KEY"] ?? "",
+  {
+    apiVersion: "2026-03-25.dahlia",
+  },
+);
 
 export const stripeRouter = router({
   // Create checkout session for Pro or Enterprise plan
   createCheckout: protectedProcedure
-    .input(
-      z.object({
-        plan: z.enum(["PRO", "ENTERPRISE"]),
-      })
-    )
+    .input(z.object({ plan: z.enum(["PRO", "ENTERPRISE"]) }))
     .mutation(async ({ ctx, input }) => {
       const planDetails = STRIPE_PRODUCTS[input.plan];
 
       if (!planDetails.priceId) {
-        throw new Error("Price ID not configured for this plan");
+        throw new Error(
+          "Price ID not configured for this plan",
+        );
       }
+
+      const origin = getOrigin(ctx.req);
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -41,8 +45,8 @@ export const stripeRouter = router({
           },
         ],
         allow_promotion_codes: true,
-        success_url: `${ctx.req.headers.origin || "https://localhost:3000"}/dashboard?payment=success`,
-        cancel_url: `${ctx.req.headers.origin || "https://localhost:3000"}/dashboard?payment=cancelled`,
+        success_url: `${origin}/dashboard?payment=success`,
+        cancel_url: `${origin}/dashboard?payment=cancelled`,
       });
 
       return {
@@ -53,13 +57,17 @@ export const stripeRouter = router({
 
   // Get subscription details
   getSubscription: protectedProcedure.query(async ({ ctx }) => {
-    const subscription = await db.getOrCreateSubscription(ctx.user.id);
+    const subscription = await db.getOrCreateSubscription(
+      ctx.user.id,
+    );
     return subscription;
   }),
 
   // Get payment history
   getPaymentHistory: protectedProcedure.query(async ({ ctx }) => {
-    const subscription = await db.getOrCreateSubscription(ctx.user.id);
+    const subscription = await db.getOrCreateSubscription(
+      ctx.user.id,
+    );
 
     if (!subscription.stripeCustomerId) {
       return [];
@@ -71,14 +79,16 @@ export const stripeRouter = router({
         limit: 20,
       });
 
-      return invoices.data.map((invoice: Stripe.Invoice) => ({
-        id: invoice.id,
-        date: new Date(invoice.created * 1000),
-        amount: invoice.amount_paid / 100,
-        currency: invoice.currency.toUpperCase(),
-        status: invoice.status,
-        pdfUrl: invoice.invoice_pdf,
-      }));
+      return invoices.data.map(
+        (invoice: Stripe.Invoice) => ({
+          id: invoice.id,
+          date: new Date(invoice.created * 1000),
+          amount: invoice.amount_paid / 100,
+          currency: invoice.currency.toUpperCase(),
+          status: invoice.status,
+          pdfUrl: invoice.invoice_pdf,
+        }),
+      );
     } catch (error) {
       console.error("Error fetching payment history:", error);
       return [];
@@ -87,14 +97,18 @@ export const stripeRouter = router({
 
   // Cancel subscription
   cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
-    const subscription = await db.getOrCreateSubscription(ctx.user.id);
+    const subscription = await db.getOrCreateSubscription(
+      ctx.user.id,
+    );
 
     if (!subscription.stripeSubscriptionId) {
       throw new Error("No active subscription found");
     }
 
     try {
-      await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+      await stripe.subscriptions.cancel(
+        subscription.stripeSubscriptionId,
+      );
 
       // Update local subscription
       await db.updateSubscription(ctx.user.id, {

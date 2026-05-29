@@ -1,9 +1,12 @@
 /**
  * Web Scanner for compliance violations
  * Detects dark patterns, autoplay, infinite scroll, ad trackers, lootboxes, and privacy policy issues
+ *
+ * NOTE: JSDOM is lazy-imported inside scanHtmlForViolations() so that
+ * serverless environments (Vercel) don't crash at module-load time if
+ * jsdom cannot resolve its optional native bindings.
  */
 
-import { JSDOM } from "jsdom";
 import { ECA_PILLARS } from "@shared/pillars";
 
 export interface ScanResult {
@@ -29,11 +32,13 @@ export interface ViolationDetail {
  * Scan HTML content for compliance violations
  */
 export async function scanHtmlForViolations(
-  htmlContent: string
+  htmlContent: string,
 ): Promise<ScanResult> {
   const violations: ViolationDetail[] = [];
 
   try {
+    // Lazy import — avoids top-level crash in Vercel serverless
+    const { JSDOM } = await import("jsdom");
     const dom = new JSDOM(htmlContent);
     const document = dom.window.document;
 
@@ -68,9 +73,9 @@ export async function scanHtmlForViolations(
     violations.push({
       type: "other",
       severity: "warning",
-      title: "Erro ao analisar página",
-      description: `Ocorreu um erro durante a análise: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
-      recommendation: "Verifique se a URL é válida e acessível.",
+      title: "Erro ao analisar pagina",
+      description: `Ocorreu um erro durante a analise: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
+      recommendation: "Verifique se a URL e valida e acessivel.",
     });
   }
 
@@ -79,11 +84,15 @@ export async function scanHtmlForViolations(
     ECA_PILLARS.reduce((acc, pillar) => {
       const hasViolation = violations.some((v) => v.type === pillar.id);
       return acc + (hasViolation ? 0 : pillar.weight * 100);
-    }, 0)
+    }, 0),
   );
 
-  const criticalCount = violations.filter((v) => v.severity === "critical").length;
-  const warningCount = violations.filter((v) => v.severity === "warning").length;
+  const criticalCount = violations.filter(
+    (v) => v.severity === "critical",
+  ).length;
+  const warningCount = violations.filter(
+    (v) => v.severity === "warning",
+  ).length;
   const infoCount = violations.filter((v) => v.severity === "info").length;
 
   return {
@@ -112,11 +121,11 @@ function detectAutoplay(document: Document): ViolationDetail[] {
       violations.push({
         type: "autoplay",
         severity: "warning",
-        title: "Vídeo com Autoplay Detectado",
+        title: "Video com Autoplay Detectado",
         description:
-          "Vídeos com autoplay podem prejudicar a experiência do usuário e consumir dados desnecessariamente, especialmente para usuários menores de idade.",
+          "Videos com autoplay podem prejudicar a experiencia do usuario e consumir dados desnecessariamente, especialmente para usuarios menores de idade.",
         recommendation:
-          "Remova o atributo 'autoplay' ou implemente um controle de consentimento do usuário antes de reproduzir automaticamente.",
+          "Remova o atributo 'autoplay' ou implemente um controle de consentimento do usuario antes de reproduzir automaticamente.",
         elementSelector: "video[autoplay]",
       });
     }
@@ -130,7 +139,9 @@ function detectAutoplay(document: Document): ViolationDetail[] {
  */
 function detectInfiniteScroll(document: Document): ViolationDetail[] {
   const violations: ViolationDetail[] = [];
-  const elements = document.querySelectorAll("[class*='infinite'], [class*='endless'], [data-infinite-scroll]");
+  const elements = document.querySelectorAll(
+    "[class*='infinite'], [class*='endless'], [data-infinite-scroll]",
+  );
 
   if (elements.length > 0) {
     violations.push({
@@ -138,9 +149,9 @@ function detectInfiniteScroll(document: Document): ViolationDetail[] {
       severity: "warning",
       title: "Rolagem Infinita Detectada",
       description:
-        "A rolagem infinita pode ser uma prática de dark pattern que mantém usuários engajados indefinidamente, especialmente prejudicial para menores.",
+        "A rolagem infinita pode ser uma pratica de dark pattern que mantem usuarios engajados indefinidamente, especialmente prejudicial para menores.",
       recommendation:
-        "Implemente paginação explícita ou adicione um aviso claro sobre o conteúdo infinito com opção de parar.",
+        "Implemente paginacao explicita ou adicione um aviso claro sobre o conteudo infinito com opcao de parar.",
       elementSelector: "[class*='infinite']",
     });
   }
@@ -157,20 +168,22 @@ function detectDarkPatterns(document: Document): ViolationDetail[] {
   // Check for roach motel (hard to unsubscribe)
   const forms = document.querySelectorAll("form");
   forms.forEach((form) => {
-    const submitButtons = form.querySelectorAll("button[type='submit'], input[type='submit']");
+    const submitButtons = form.querySelectorAll(
+      "button[type='submit'], input[type='submit']",
+    );
     const cancelButtons = form.querySelectorAll(
-      "button[onclick*='cancel'], button[onclick*='close'], a[href*='cancel']"
+      "button[onclick*='cancel'], button[onclick*='close'], a[href*='cancel']",
     );
 
     if (submitButtons.length > 0 && cancelButtons.length === 0) {
       violations.push({
         type: "dark_pattern",
         severity: "warning",
-        title: "Padrão de Roach Motel Detectado",
+        title: "Padrao de Roach Motel Detectado",
         description:
-          "Formulário sem opção clara de cancelamento ou saída, tornando difícil para usuários se desinscreverem.",
+          "Formulario sem opcao clara de cancelamento ou saida, tornando dificil para usuarios se desinscreverem.",
         recommendation:
-          "Adicione um botão de cancelamento ou voltar com a mesma proeminência do botão de envio.",
+          "Adicione um botao de cancelamento ou voltar com a mesma proeminencia do botao de envio.",
       });
     }
   });
@@ -182,7 +195,7 @@ function detectDarkPatterns(document: Document): ViolationDetail[] {
     const opacityAttr = button.getAttribute("style") || "";
 
     if (
-      (text.includes("não") || text.includes("recusar")) &&
+      (text.includes("nao") || text.includes("recusar")) &&
       opacityAttr.includes("opacity")
     ) {
       violations.push({
@@ -190,9 +203,9 @@ function detectDarkPatterns(document: Document): ViolationDetail[] {
         severity: "critical",
         title: "Misdirection Detectada",
         description:
-          "Botões de recusa estão visualmente desfavorecidos em relação aos botões de aceitação.",
+          "Botoes de recusa estao visualmente desfavorecidos em relacao aos botoes de aceitacao.",
         recommendation:
-          "Certifique-se de que os botões de recusa têm a mesma proeminência visual que os de aceitação.",
+          "Certifique-se de que os botoes de recusa tem a mesma proeminencia visual que os de aceitacao.",
       });
     }
   });
@@ -231,11 +244,11 @@ function detectAdTrackers(document: Document): ViolationDetail[] {
     violations.push({
       type: "ad_tracker",
       severity: "warning",
-      title: `${trackerCount} Rastreador(es) de Anúncios Detectado(s)`,
+      title: `${trackerCount} Rastreador(es) de Anuncios Detectado(s)`,
       description:
-        "Múltiplos rastreadores de anúncios foram encontrados na página, potencialmente coletando dados de usuários.",
+        "Multiplos rastreadores de anuncios foram encontrados na pagina, potencialmente coletando dados de usuarios.",
       recommendation:
-        "Revise a política de privacidade e implemente consentimento explícito antes de carregar rastreadores, especialmente para menores.",
+        "Revise a politica de privacidade e implemente consentimento explicito antes de carregar rastreadores, especialmente para menores.",
     });
   }
 
@@ -252,7 +265,7 @@ function detectLootboxes(document: Document): ViolationDetail[] {
   const lootboxPatterns = [
     "caixa",
     "sorteio",
-    "prêmio",
+    "premio",
     "gacha",
     "loot",
     "roulette",
@@ -261,24 +274,30 @@ function detectLootboxes(document: Document): ViolationDetail[] {
 
   const bodyText = document.body.textContent?.toLowerCase() || "";
   const hasLootboxPattern = lootboxPatterns.some((pattern) =>
-    bodyText.includes(pattern)
+    bodyText.includes(pattern),
   );
 
   // Check for payment buttons near lootbox indicators
-  const paymentPatterns = ["comprar", "pagar", "crédito", "buy", "pay"];
+  const paymentPatterns = [
+    "comprar",
+    "pagar",
+    "credito",
+    "buy",
+    "pay",
+  ];
   const hasPaymentPattern = paymentPatterns.some((pattern) =>
-    bodyText.includes(pattern)
+    bodyText.includes(pattern),
   );
 
   if (hasLootboxPattern && hasPaymentPattern) {
     violations.push({
       type: "lootbox",
       severity: "critical",
-      title: "Possível Mecânica de Lootbox Detectada",
+      title: "Possivel Mecanica de Lootbox Detectada",
       description:
-        "A página pode conter mecanismos de sorteio ou caixas mistério com pagamento, o que é prejudicial para menores.",
+        "A pagina pode conter mecanismos de sorteio ou caixas misterio com pagamento, o que e prejudicial para menores.",
       recommendation:
-        "Implemente controles de idade robustos e avisos claros sobre mecânicas de sorteio. Considere remover essas funcionalidades para usuários menores.",
+        "Implemente controles de idade robustos e avisos claros sobre mecanicas de sorteio. Considere remover essas funcionalidades para usuarios menores.",
     });
   }
 
@@ -294,32 +313,34 @@ function detectPrivacyPolicy(document: Document): ViolationDetail[] {
   const privacyPatterns = [
     "privacidade",
     "privacy",
-    "política",
+    "politica",
     "policy",
     "dados",
     "dados pessoais",
   ];
 
   const bodyText = document.body.textContent?.toLowerCase() || "";
-  const footerText = document.querySelector("footer")?.textContent?.toLowerCase() || "";
-  const headerText = document.querySelector("header")?.textContent?.toLowerCase() || "";
+  const footerText =
+    document.querySelector("footer")?.textContent?.toLowerCase() || "";
+  const headerText =
+    document.querySelector("header")?.textContent?.toLowerCase() || "";
 
   const hasPrivacyPolicy = privacyPatterns.some(
     (pattern) =>
       bodyText.includes(pattern) ||
       footerText.includes(pattern) ||
-      headerText.includes(pattern)
+      headerText.includes(pattern),
   );
 
   if (!hasPrivacyPolicy) {
     violations.push({
       type: "missing_privacy_policy",
       severity: "critical",
-      title: "Política de Privacidade Não Encontrada",
+      title: "Politica de Privacidade Nao Encontrada",
       description:
-        "Nenhuma referência a política de privacidade foi encontrada na página. Isso viola LGPD e regulamentações de proteção de dados.",
+        "Nenhuma referencia a politica de privacidade foi encontrada na pagina. Isso viola LGPD e regulamentacoes de protecao de dados.",
       recommendation:
-        "Adicione um link para a política de privacidade no rodapé ou cabeçalho da página, tornando-o facilmente acessível.",
+        "Adicione um link para a politica de privacidade no rodape ou cabecalho da pagina, tornando-o facilmente acessivel.",
     });
   }
 
@@ -336,7 +357,7 @@ function detectAgeVerification(document: Document): ViolationDetail[] {
   const childTargetingPatterns = [
     "jogo",
     "game",
-    "criança",
+    "crianca",
     "kid",
     "infantil",
     "jovem",
@@ -345,7 +366,7 @@ function detectAgeVerification(document: Document): ViolationDetail[] {
 
   const bodyText = document.body.textContent?.toLowerCase() || "";
   const targetsChildren = childTargetingPatterns.some((pattern) =>
-    bodyText.includes(pattern)
+    bodyText.includes(pattern),
   );
 
   // Check for age verification mechanisms
@@ -359,18 +380,18 @@ function detectAgeVerification(document: Document): ViolationDetail[] {
   ];
 
   const hasAgeGate = ageGatePatterns.some((pattern) =>
-    bodyText.includes(pattern)
+    bodyText.includes(pattern),
   );
 
   if (targetsChildren && !hasAgeGate) {
     violations.push({
       type: "age_verification",
       severity: "critical",
-      title: "Verificação de Idade Ausente",
+      title: "Verificacao de Idade Ausente",
       description:
-        "A página parece ser direcionada a menores, mas não possui mecanismo de verificação de idade conforme exigido pelo ECA Digital.",
+        "A pagina parece ser direcionada a menores, mas nao possui mecanismo de verificacao de idade conforme exigido pelo ECA Digital.",
       recommendation:
-        "Implemente um sistema robusto de verificação de idade usando APIs oficiais como Datavalid (Serpro/Gov.br) antes de permitir acesso.",
+        "Implemente um sistema robusto de verificacao de idade usando APIs oficiais como Datavalid (Serpro/Gov.br) antes de permitir acesso.",
     });
   }
 
@@ -399,7 +420,9 @@ function detectConsent(document: Document): ViolationDetail[] {
   ];
 
   const bodyText = document.body?.textContent?.toLowerCase() ?? "";
-  const hasConsentMechanism = consentPatterns.some((p) => bodyText.includes(p));
+  const hasConsentMechanism = consentPatterns.some((p) =>
+    bodyText.includes(p),
+  );
 
   // Check for scripts that are typical CMPs
   const scripts = document.querySelectorAll("script[src]");
@@ -417,11 +440,11 @@ function detectConsent(document: Document): ViolationDetail[] {
     violations.push({
       type: "other",
       severity: "critical",
-      title: "Mecanismo de Consentimento Não Encontrado",
+      title: "Mecanismo de Consentimento Nao Encontrado",
       description:
         "Nenhum banner ou mecanismo de consentimento para cookies/dados foi detectado, violando LGPD e o ECA Digital.",
       recommendation:
-        "Implemente uma plataforma de gerenciamento de consentimento (CMP) compatível com LGPD antes de carregar rastreadores.",
+        "Implemente uma plataforma de gerenciamento de consentimento (CMP) compativel com LGPD antes de carregar rastreadores.",
     });
   }
 
@@ -450,7 +473,7 @@ function detectAccessibility(document: Document): ViolationDetail[] {
       severity: "info",
       title: `${imagesWithoutAlt} Imagem(ns) sem Texto Alternativo`,
       description:
-        "Imagens sem atributo alt dificultam o acesso por pessoas com deficiência visual, impactando a acessibilidade digital.",
+        "Imagens sem atributo alt dificultam o acesso por pessoas com deficiencia visual, impactando a acessibilidade digital.",
       recommendation:
         "Adicione o atributo alt descritivo a todas as imagens. Use alt=\"\" para imagens decorativas.",
       elementSelector: "img:not([alt])",
@@ -463,11 +486,11 @@ function detectAccessibility(document: Document): ViolationDetail[] {
     violations.push({
       type: "other",
       severity: "info",
-      title: "Idioma da Página Não Declarado",
+      title: "Idioma da Pagina Nao Declarado",
       description:
-        "O atributo lang não está definido no elemento <html>, dificultando leitores de tela.",
+        "O atributo lang nao esta definido no elemento <html>, dificultando leitores de tela.",
       recommendation:
-        "Adicione lang=\"pt-BR\" ao elemento <html> para indicar o idioma da página.",
+        "Adicione lang=\"pt-BR\" ao elemento <html> para indicar o idioma da pagina.",
       elementSelector: "html:not([lang])",
     });
   }
@@ -479,14 +502,19 @@ function assertSafeUrl(url: string): void {
   const parsed = new URL(url);
 
   if (!["http:", "https:"].includes(parsed.protocol)) {
-    throw new Error("Protocolo não permitido. Use http:// ou https://");
+    throw new Error("Protocolo nao permitido. Use http:// ou https://");
   }
 
   const hostname = parsed.hostname.toLowerCase();
 
-  const blockedHostnames = ["localhost", "0.0.0.0", "::1", "[::1]"];
+  const blockedHostnames = [
+    "localhost",
+    "0.0.0.0",
+    "::1",
+    "[::1]",
+  ];
   if (blockedHostnames.includes(hostname)) {
-    throw new Error("URL aponta para host local não permitido");
+    throw new Error("URL aponta para host local nao permitido");
   }
 
   const privateRanges = [
@@ -500,12 +528,15 @@ function assertSafeUrl(url: string): void {
   ];
 
   if (privateRanges.some((r) => r.test(hostname))) {
-    throw new Error("URL aponta para rede privada não permitida");
+    throw new Error("URL aponta para rede privada nao permitida");
   }
 
-  const blockedPatterns = ["169.254.169.254", "metadata.google.internal"];
+  const blockedPatterns = [
+    "169.254.169.254",
+    "metadata.google.internal",
+  ];
   if (blockedPatterns.some((p) => hostname.includes(p))) {
-    throw new Error("URL não permitida");
+    throw new Error("URL nao permitida");
   }
 }
 
@@ -531,7 +562,9 @@ export async function scanUrl(url: string): Promise<ScanResult> {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText}`,
+        );
       }
 
       const htmlContent = await response.text();

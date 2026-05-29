@@ -18,13 +18,13 @@ async function initDb() {
   if (_initialized) return;
   _initialized = true;
 
-  const url = process.env.DATABASE_URL;
+  const url = process.env["DATABASE_URL"];
   if (!url) {
     console.warn("[Database] DATABASE_URL not set, running without DB");
     return;
   }
 
-  _provider = process.env.DATABASE_PROVIDER ?? "mysql";
+  _provider = process.env["DATABASE_PROVIDER"] ?? "mysql";
 
   try {
     if (_provider === "sqlite") {
@@ -32,7 +32,7 @@ async function initDb() {
       const { createClient } = await import("@libsql/client");
 
       // Suporta tanto arquivo local quanto Turso (libsql://)
-      const authToken = process.env.DATABASE_AUTH_TOKEN;
+      const authToken = process.env["DATABASE_AUTH_TOKEN"];
       const clientOpts: { url: string; authToken?: string } = { url };
       if (authToken) {
         clientOpts.authToken = authToken;
@@ -118,7 +118,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 }
 
-export async function getUserByOpenId(openId: string) {
+export async function getUserByOpenId(
+  openId: string,
+): Promise<User | undefined> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
@@ -131,7 +133,7 @@ export async function getUserByOpenId(openId: string) {
     .from(users)
     .where(eq(users.openId, openId))
     .limit(1);
-  return result.length > 0 ? (result[0] as Audit) : undefined;
+  return result.length > 0 ? (result[0] as User) : undefined;
 }
 
 export async function getOrCreateSubscription(userId: number) {
@@ -164,7 +166,7 @@ export async function getOrCreateSubscription(userId: number) {
 
 export async function updateSubscription(
   userId: number,
-  updates: Record<string, unknown>
+  updates: Record<string, unknown>,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -188,7 +190,9 @@ export async function resetMonthlyScans(): Promise<void> {
   console.log("[DB] Monthly scan counters reset");
 }
 
-export async function getSubscriptionByStripeId(stripeSubscriptionId: string) {
+export async function getSubscriptionByStripeId(
+  stripeSubscriptionId: string,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -217,7 +221,7 @@ export async function incrementScansUsed(userId: number): Promise<void> {
 export async function createAudit(
   userId: number,
   url: string,
-  domain: string
+  domain: string,
 ): Promise<{ insertId: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -238,7 +242,9 @@ export async function createAudit(
   return result as { insertId: number };
 }
 
-export async function getAuditById(auditId: number): Promise<Audit | undefined> {
+export async function getAuditById(
+  auditId: number,
+): Promise<Audit | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -254,7 +260,7 @@ export async function getAuditById(auditId: number): Promise<Audit | undefined> 
 export async function getUserAudits(
   userId: number,
   limit = 20,
-  offset = 0
+  offset = 0,
 ): Promise<Audit[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -271,7 +277,7 @@ export async function getUserAudits(
 
 export async function updateAudit(
   auditId: number,
-  updates: Record<string, unknown>
+  updates: Record<string, unknown>,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -282,7 +288,7 @@ export async function updateAudit(
 
 export async function createViolation(
   auditId: number,
-  violation: Omit<Violation, "id" | "auditId" | "createdAt">
+  violation: Omit<Violation, "id" | "auditId" | "createdAt">,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -291,7 +297,9 @@ export async function createViolation(
   return db.insert(violations).values({ ...violation, auditId });
 }
 
-export async function getAuditViolations(auditId: number): Promise<Violation[]> {
+export async function getAuditViolations(
+  auditId: number,
+): Promise<Violation[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -303,19 +311,22 @@ export async function getAuditViolations(auditId: number): Promise<Violation[]> 
     .orderBy(violations.severity) as Promise<Violation[]>;
 }
 
-// ── LGPD: Exclusão de dados do titular ──────────────────────────────
+// ── LGPD: Exclusao de dados do titular ──────────────────────────────
 
 /**
- * Exclui uma auditoria específica e todas as suas violações associadas.
- * Atende ao direito de exclusão (Art. 18, LGPD).
+ * Exclui uma auditoria especifica e todas as suas violacoes associadas.
+ * Atende ao direito de exclusao (Art. 18, LGPD).
  */
-export async function deleteAudit(auditId: number, userId: number): Promise<void> {
+export async function deleteAudit(
+  auditId: number,
+  userId: number,
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const { audits, violations, reports } = _schema;
 
-  // Verifica se a auditoria pertence ao usuário
+  // Verifica se a auditoria pertence ao usuario
   const audit = await db
     .select()
     .from(audits)
@@ -323,40 +334,44 @@ export async function deleteAudit(auditId: number, userId: number): Promise<void
     .limit(1);
 
   if (audit.length === 0) {
-    throw new Error("Auditoria não encontrada ou sem permissão");
+    throw new Error("Auditoria nao encontrada ou sem permissao");
   }
 
-  // Remove violações associadas
+  // Remove violacoes associadas
   await db.delete(violations).where(eq(violations.auditId, auditId));
 
-  // Remove relatórios associados
+  // Remove relatorios associados
   await db.delete(reports).where(eq(reports.auditId, auditId));
 
   // Remove a auditoria
   await db.delete(audits).where(eq(audits.id, auditId));
 
-  console.log(`[LGPD] Auditoria ${auditId} excluída por usuário ${userId}`);
+  console.log(
+    `[LGPD] Auditoria ${auditId} excluida por usuario ${userId}`,
+  );
 }
 
 /**
- * Exclui TODOS os dados de um usuário (auditorias, violações, relatórios, assinatura).
+ * Exclui TODOS os dados de um usuario (auditorias, violacoes, relatorios, assinatura).
  * Atende ao direito ao esquecimento completo (Art. 18, III, LGPD).
  */
 export async function deleteUserData(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const { audits, violations, reports, subscriptions, users } = _schema;
+  const { audits, violations, reports, subscriptions } = _schema;
 
-  // Busca IDs das auditorias do usuário
+  // Busca IDs das auditorias do usuario
   const userAudits = await db
     .select({ id: audits.id })
     .from(audits)
     .where(eq(audits.userId, userId));
 
-  const auditIds = userAudits.map((a) => a.id);
+  const auditIds = userAudits.map(
+    (row: { id: number }) => row.id,
+  );
 
-  // Remove violações de todas as auditorias
+  // Remove violacoes de todas as auditorias
   for (const auditId of auditIds) {
     await db.delete(violations).where(eq(violations.auditId, auditId));
     await db.delete(reports).where(eq(reports.auditId, auditId));
@@ -368,14 +383,18 @@ export async function deleteUserData(userId: number): Promise<void> {
   // Remove assinatura
   await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
 
-  console.log(`[LGPD] Todos os dados do usuário ${userId} foram excluídos (esquecimento completo)`);
+  console.log(
+    `[LGPD] Todos os dados do usuario ${userId} foram excluidos (esquecimento completo)`,
+  );
 }
 
 /**
  * Exclui auditorias completadas com mais de N dias.
- * Executado automaticamente pelo job de retenção (Vercel Cron ou node-cron).
+ * Executado automaticamente pelo job de retencao (Vercel Cron ou node-cron).
  */
-export async function deleteOldAudits(daysOld: number = 90): Promise<number> {
+export async function deleteOldAudits(
+  daysOld: number = 90,
+): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -387,12 +406,7 @@ export async function deleteOldAudits(daysOld: number = 90): Promise<number> {
   const oldAudits = await db
     .select({ id: audits.id })
     .from(audits)
-    .where(
-      and(
-        eq(audits.status, "completed"),
-        lt(audits.createdAt, cutoff)
-      )
-    );
+    .where(and(eq(audits.status, "completed"), lt(audits.createdAt, cutoff)));
 
   let deleted = 0;
   for (const audit of oldAudits) {
@@ -403,7 +417,9 @@ export async function deleteOldAudits(daysOld: number = 90): Promise<number> {
   }
 
   if (deleted > 0) {
-    console.log(`[LGPD] Retenção: ${deleted} auditorias com mais de ${daysOld} dias excluídas`);
+    console.log(
+      `[LGPD] Retencao: ${deleted} auditorias com mais de ${daysOld} dias excluidas`,
+    );
   }
 
   return deleted;

@@ -6,13 +6,14 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
+import { getHeader } from "./express5-compat";
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
 export type SessionPayload = {
-  openId: string;   // GitHub user ID as string
-  appId: string;    // kept for compatibility ("github")
+  openId: string; // GitHub user ID as string
+  appId: string; // kept for compatibility ("github")
   name: string;
 };
 
@@ -40,7 +41,7 @@ interface GitHubEmailEntry {
 
 async function exchangeGitHubCode(
   code: string,
-  redirectUri: string
+  redirectUri: string,
 ): Promise<GitHubTokenResponse> {
   const res = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
@@ -84,7 +85,8 @@ async function getGitHubUser(accessToken: string): Promise<{
     fetch("https://api.github.com/user/emails", { headers }),
   ]);
 
-  if (!userRes.ok) throw new Error(`GitHub user fetch failed: ${userRes.status}`);
+  if (!userRes.ok)
+    throw new Error(`GitHub user fetch failed: ${userRes.status}`);
 
   const user = (await userRes.json()) as GitHubUserResponse;
 
@@ -120,8 +122,13 @@ class SDKServer {
 
   async handleGitHubCallback(
     code: string,
-    state: string
-  ): Promise<{ openId: string; name: string; email: string | null; loginMethod: string }> {
+    state: string,
+  ): Promise<{
+    openId: string;
+    name: string;
+    email: string | null;
+    loginMethod: string;
+  }> {
     const redirectUri = atob(state);
     const tokenData = await exchangeGitHubCode(code, redirectUri);
     return getGitHubUser(tokenData.access_token);
@@ -135,17 +142,17 @@ class SDKServer {
 
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {}
+    options: { expiresInMs?: number; name?: string } = {},
   ): Promise<string> {
     return this.signSession(
       { openId, appId: "github", name: options.name || "" },
-      options
+      options,
     );
   }
 
   async signSession(
     payload: SessionPayload,
-    options: { expiresInMs?: number } = {}
+    options: { expiresInMs?: number } = {},
   ): Promise<string> {
     const issuedAt = Date.now();
     const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
@@ -163,7 +170,7 @@ class SDKServer {
   }
 
   async verifySession(
-    cookieValue: string | undefined | null
+    cookieValue: string | undefined | null,
   ): Promise<{ openId: string; appId: string; name: string } | null> {
     if (!cookieValue) return null;
     try {
@@ -171,7 +178,8 @@ class SDKServer {
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const p = payload as Record<string, unknown>;
+      const { openId, appId, name } = p;
       if (!isNonEmptyString(openId) || !isNonEmptyString(appId)) return null;
       return { openId, appId, name: String(name ?? "") };
     } catch {
@@ -187,7 +195,11 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
-    const cookies = this.parseCookies(req.headers.cookie);
+    // Use express5-compat to read headers safely
+    const cookieHeader = getHeader(req, "cookie");
+    const cookies = this.parseCookies(
+      Array.isArray(cookieHeader) ? cookieHeader[0] : cookieHeader,
+    );
     const sessionCookie = cookies.get(COOKIE_NAME);
     const session = await this.verifySession(sessionCookie);
 

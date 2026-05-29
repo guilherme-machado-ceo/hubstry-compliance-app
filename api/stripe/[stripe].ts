@@ -2,15 +2,24 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import * as db from "../../server/db";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-03-25.dahlia",
-});
+const stripe = new Stripe(
+  process.env["STRIPE_SECRET_KEY"] ?? "",
+  {
+    apiVersion: "2026-03-25.dahlia",
+  },
+);
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+const webhookSecret = process.env["STRIPE_WEBHOOK_SECRET"] ?? "";
 
-const PRICE_PLAN_MAP: Record<string, { plan: "pro" | "enterprise"; scansPerMonth: number }> = {
-  [process.env.STRIPE_PRICE_PRO!]: { plan: "pro", scansPerMonth: 500 },
-  [process.env.STRIPE_PRICE_ENTERPRISE!]: { plan: "enterprise", scansPerMonth: -1 },
+const stripePricePro = process.env["STRIPE_PRICE_PRO"] ?? "";
+const stripePriceEnterprise = process.env["STRIPE_PRICE_ENTERPRISE"] ?? "";
+
+const PRICE_PLAN_MAP: Record<
+  string,
+  { plan: "pro" | "enterprise"; scansPerMonth: number }
+> = {
+  [stripePricePro]: { plan: "pro", scansPerMonth: 500 },
+  [stripePriceEnterprise]: { plan: "enterprise", scansPerMonth: -1 },
 };
 
 async function readRawBody(req: VercelRequest): Promise<Buffer> {
@@ -22,15 +31,23 @@ async function readRawBody(req: VercelRequest): Promise<Buffer> {
   });
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const sig = req.headers["stripe-signature"];
+  const sig =
+    typeof req.headers["stripe-signature"] === "string"
+      ? req.headers["stripe-signature"]
+      : undefined;
 
   if (!sig || !webhookSecret) {
-    console.error("[Webhook] Missing signature or webhook secret");
+    console.error(
+      "[Webhook] Missing signature or webhook secret",
+    );
     return res.status(400).json({ error: "Missing signature" });
   }
 
@@ -39,10 +56,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     rawBody = await readRawBody(req);
-    event = stripe.webhooks.constructEvent(rawBody, sig as string, webhookSecret);
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
     console.error("[Webhook] Signature verification failed:", err);
-    return res.status(400).json({ error: "Signature verification failed" });
+    return res
+      .status(400)
+      .json({ error: "Signature verification failed" });
   }
 
   if (event.id.startsWith("evt_test_")) {
@@ -70,29 +89,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       }
       default:
-        console.log("[Webhook] Unhandled event type:", event.type);
+        console.log(
+          "[Webhook] Unhandled event type:",
+          event.type,
+        );
     }
 
     return res.json({ received: true });
   } catch (error) {
     console.error("[Webhook] Error processing event:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: "Internal server error" });
   }
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const userId = session.client_reference_id ? parseInt(session.client_reference_id) : null;
+async function handleCheckoutCompleted(
+  session: Stripe.Checkout.Session,
+) {
+  const userId = session.client_reference_id
+    ? parseInt(session.client_reference_id)
+    : null;
   if (!userId || !session.subscription) {
-    console.error("[Webhook] Missing userId or subscription ID");
+    console.error(
+      "[Webhook] Missing userId or subscription ID",
+    );
     return;
   }
 
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  const subscription = await stripe.subscriptions.retrieve(
+    session.subscription as string,
+  );
   const priceId = subscription.items.data[0]?.price.id;
   const planDetails = priceId ? PRICE_PLAN_MAP[priceId] : undefined;
 
   if (!planDetails) {
-    console.error(`[Webhook] Unknown priceId "${priceId}" — not updating subscription`);
+    console.error(
+      `[Webhook] Unknown priceId "${priceId}" — not updating subscription`,
+    );
     return;
   }
 
@@ -104,13 +138,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     scansUsedThisMonth: 0,
   });
 
-  console.log(`[Webhook] Updated user ${userId} to plan ${planDetails.plan}`);
+  console.log(
+    `[Webhook] Updated user ${userId} to plan ${planDetails.plan}`,
+  );
 }
 
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const existing = await db.getSubscriptionByStripeId(subscription.id);
+async function handleSubscriptionUpdated(
+  subscription: Stripe.Subscription,
+) {
+  const existing = await db.getSubscriptionByStripeId(
+    subscription.id,
+  );
   if (!existing) {
-    console.warn(`[Webhook] No local subscription found for ${subscription.id}`);
+    console.warn(
+      `[Webhook] No local subscription found for ${subscription.id}`,
+    );
     return;
   }
 
@@ -118,7 +160,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   if (status === "active") return;
 
   if (status === "past_due" || status === "unpaid") {
-    await db.updateSubscription(existing.userId, { plan: "free", scansPerMonth: 5, status });
+    await db.updateSubscription(existing.userId, {
+      plan: "free",
+      scansPerMonth: 5,
+      status,
+    });
     return;
   }
 
@@ -127,10 +173,16 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 }
 
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const existing = await db.getSubscriptionByStripeId(subscription.id);
+async function handleSubscriptionDeleted(
+  subscription: Stripe.Subscription,
+) {
+  const existing = await db.getSubscriptionByStripeId(
+    subscription.id,
+  );
   if (!existing) {
-    console.warn(`[Webhook] No local subscription found for ${subscription.id}`);
+    console.warn(
+      `[Webhook] No local subscription found for ${subscription.id}`,
+    );
     return;
   }
 
@@ -141,5 +193,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     status: "canceled",
   });
 
-  console.log(`[Webhook] Reverted user ${existing.userId} to free plan`);
+  console.log(
+    `[Webhook] Reverted user ${existing.userId} to free plan`,
+  );
 }

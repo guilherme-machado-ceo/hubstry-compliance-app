@@ -32,26 +32,27 @@ export type PlanKey = keyof typeof PLANS;
 export const STRIPE_PRODUCTS = {
   FREE: {
     name: "Free",
-    description: "Plano gratuito com 5 scans por mês",
+    description: "Plano gratuito com 5 scans por mes",
     scansPerMonth: PLANS.free.scansPerMonth,
     features: [
-      "5 scans por mês",
-      "Relatórios básicos",
+      "5 scans por mes",
+      "Relatorios basicos",
       "Score de conformidade",
-      "Detecção de violações",
+      "Deteccao de violacoes",
     ],
   },
   PRO: {
     name: "Pro",
-    description: "Plano profissional — 500 scans/mês",
+    description: "Plano profissional — 500 scans/mes",
     scansPerMonth: PLANS.pro.scansPerMonth,
-    priceId: process.env.STRIPE_PRICE_PRO || "price_pro_placeholder",
+    priceId:
+      process.env["STRIPE_PRICE_PRO"] ?? "price_pro_placeholder",
     price: 29.99,
     features: [
-      "500 scans por mês",
-      "Relatórios detalhados",
-      "Exportação em PDF",
-      "Histórico 90 dias",
+      "500 scans por mes",
+      "Relatorios detalhados",
+      "Exportacao em PDF",
+      "Historico 90 dias",
       "Suporte por email",
     ],
   },
@@ -59,15 +60,17 @@ export const STRIPE_PRODUCTS = {
     name: "Enterprise",
     description: "Plano enterprise — scans ilimitados e API access",
     scansPerMonth: PLANS.enterprise.scansPerMonth,
-    priceId: process.env.STRIPE_PRICE_ENTERPRISE || "price_enterprise_placeholder",
+    priceId:
+      process.env["STRIPE_PRICE_ENTERPRISE"] ??
+      "price_enterprise_placeholder",
     price: 99.99,
     features: [
       "Scans ilimitados",
       "API access",
-      "Relatórios avançados",
-      "Exportação em PDF",
-      "Histórico ilimitado",
-      "Suporte prioritário",
+      "Relatorios avancados",
+      "Exportacao em PDF",
+      "Historico ilimitado",
+      "Suporte prioritario",
       "Webhooks customizados",
       "SLA garantido",
     ],
@@ -76,9 +79,12 @@ export const STRIPE_PRODUCTS = {
 
 export type PlanType = keyof typeof STRIPE_PRODUCTS;
 
-export function getPlanByStripePrice(priceId: string): PlanType | null {
+export function getPlanByStripePrice(
+  priceId: string,
+): PlanType | null {
   if (priceId === STRIPE_PRODUCTS.PRO.priceId) return "PRO";
-  if (priceId === STRIPE_PRODUCTS.ENTERPRISE.priceId) return "ENTERPRISE";
+  if (priceId === STRIPE_PRODUCTS.ENTERPRISE.priceId)
+    return "ENTERPRISE";
   return null;
 }
 
