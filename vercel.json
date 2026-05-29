@@ -1,5 +1,4 @@
 {
   "buildCommand": "pnpm install && vite build && npx tsc --project tsconfig.server.json",
-  "includeFiles": "shared/**,server/**,drizzle/**",
   "framework": null
 }
