@@ -24,7 +24,15 @@ async function initDb() {
     return;
   }
 
-  _provider = process.env["DATABASE_PROVIDER"] ?? "mysql";
+  // Auto-detect provider from DATABASE_URL if not explicitly set
+  const rawProvider = process.env["DATABASE_PROVIDER"];
+  if (rawProvider) {
+    _provider = rawProvider;
+  } else if (url.startsWith("libsql://") || url.startsWith("file:") || url.endsWith(".db")) {
+    _provider = "sqlite";
+  } else {
+    _provider = "mysql";
+  }
 
   try {
     if (_provider === "sqlite") {
@@ -434,3 +442,4 @@ export async function deleteOldAudits(
 
   return deleted;
 }
+
