@@ -12,9 +12,13 @@ export default async function handler(
   }
 
   const code =
-    typeof req.query.code === "string" ? req.query.code : undefined;
+    typeof req.query["code"] === "string"
+      ? req.query["code"]
+      : undefined;
   const state =
-    typeof req.query.state === "string" ? req.query.state : undefined;
+    typeof req.query["state"] === "string"
+      ? req.query["state"]
+      : undefined;
 
   if (!code || !state) {
     return res.redirect("/?error=missing_params");
@@ -36,10 +40,11 @@ export default async function handler(
       expiresInMs: ONE_YEAR_MS,
     });
 
-    const isSecure =
-      (typeof req.headers["x-forwarded-proto"] === "string"
-        ? req.headers["x-forwarded-proto"]
-        : "https") === "https";
+    const forwardedProto = typeof req.headers["x-forwarded-proto"] === "string"
+      ? req.headers["x-forwarded-proto"]
+      : "https";
+    const isSecure = forwardedProto === "https";
+
     const cookieParts = [
       `${COOKIE_NAME}=${sessionToken}`,
       "HttpOnly",

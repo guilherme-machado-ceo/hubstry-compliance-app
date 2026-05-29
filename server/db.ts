@@ -1,6 +1,6 @@
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 // Import MySQL schema for TypeScript types (canonical type source)
-import type { Audit, InsertUser, Violation } from "../drizzle/schema";
+import type { Audit, InsertUser, User, Violation } from "../drizzle/schema";
 import * as mysqlSchema from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -74,32 +74,42 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     const values: Record<string, unknown> = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
-    for (const field of textFields) {
-      const value = user[field];
-      if (value === undefined) continue;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    }
+    // Access InsertUser fields via bracket notation (noPropertyAccessFromIndexSignature)
+    const nameVal = user["name"];
+    const emailVal = user["email"];
+    const loginMethodVal = user["loginMethod"];
+    const lastSignedInVal = user["lastSignedIn"];
+    const roleVal = user["role"];
 
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
+    if (nameVal !== undefined) {
+      values["name"] = nameVal ?? null;
+      updateSet["name"] = nameVal ?? null;
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
+    if (emailVal !== undefined) {
+      values["email"] = emailVal ?? null;
+      updateSet["email"] = emailVal ?? null;
+    }
+    if (loginMethodVal !== undefined) {
+      values["loginMethod"] = loginMethodVal ?? null;
+      updateSet["loginMethod"] = loginMethodVal ?? null;
+    }
+    if (lastSignedInVal !== undefined) {
+      values["lastSignedIn"] = lastSignedInVal;
+      updateSet["lastSignedIn"] = lastSignedInVal;
+    }
+    if (roleVal !== undefined) {
+      values["role"] = roleVal;
+      updateSet["role"] = roleVal;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = "admin";
-      updateSet.role = "admin";
+      values["role"] = "admin";
+      updateSet["role"] = "admin";
     }
 
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
+    if (!values["lastSignedIn"]) {
+      values["lastSignedIn"] = new Date();
     }
     if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
+      updateSet["lastSignedIn"] = new Date();
     }
 
     if (_provider === "sqlite") {

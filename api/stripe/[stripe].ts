@@ -2,17 +2,16 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import * as db from "../../server/db";
 
+// Let Stripe use its bundled default API version to avoid type mismatch
 const stripe = new Stripe(
   process.env["STRIPE_SECRET_KEY"] ?? "",
-  {
-    apiVersion: "2026-03-25.dahlia",
-  },
 );
 
 const webhookSecret = process.env["STRIPE_WEBHOOK_SECRET"] ?? "";
 
 const stripePricePro = process.env["STRIPE_PRICE_PRO"] ?? "";
-const stripePriceEnterprise = process.env["STRIPE_PRICE_ENTERPRISE"] ?? "";
+const stripePriceEnterprise =
+  process.env["STRIPE_PRICE_ENTERPRISE"] ?? "";
 
 const PRICE_PLAN_MAP: Record<
   string,

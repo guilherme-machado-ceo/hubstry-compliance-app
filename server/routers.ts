@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { ECA_PILLARS } from "@shared/pillars";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { clearCookieRaw, getOrigin } from "./_core/express5-compat";
+import { clearCookieRaw } from "./_core/express5-compat";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
@@ -16,7 +16,6 @@ export const appRouter = router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      // Use express5-compat clearCookie instead of Express 5's clearCookie
       clearCookieRaw(ctx.res, COOKIE_NAME, {
         ...cookieOptions,
         maxAge: -1,
@@ -78,7 +77,6 @@ export const appRouter = router({
           .then(async (scanResult) => {
             if (auditId === undefined) return;
 
-            // Increment scan count after successful fetch
             await db.incrementScansUsed(ctx.user.id);
 
             // Store violations
@@ -164,8 +162,7 @@ export const appRouter = router({
           status: audit.status,
           complianceScore: audit.complianceScore,
           errorMessage:
-            (audit as Record<string, unknown>)["errorMessage"] ??
-            null,
+            (audit as { errorMessage?: string | null })["errorMessage"] ?? null,
         };
       }),
 
@@ -181,7 +178,6 @@ export const appRouter = router({
   gdpr: router({
     deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
       await db.deleteUserData(ctx.user.id);
-      // Limpa o cookie de sessao
       const cookieOptions = getSessionCookieOptions(ctx.req);
       clearCookieRaw(ctx.res, COOKIE_NAME, {
         ...cookieOptions,

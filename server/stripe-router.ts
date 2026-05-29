@@ -1,15 +1,13 @@
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import Stripe from "stripe";
-import { STRIPE_PRODUCTS, getPlanByStripePrice } from "./stripe-products";
+import { STRIPE_PRODUCTS } from "./stripe-products";
 import * as db from "./db";
 import { getOrigin } from "./_core/express5-compat";
 
+// Let Stripe use its bundled default API version
 const stripe = new Stripe(
   process.env["STRIPE_SECRET_KEY"] ?? "",
-  {
-    apiVersion: "2026-03-25.dahlia",
-  },
 );
 
 export const stripeRouter = router({
@@ -110,7 +108,6 @@ export const stripeRouter = router({
         subscription.stripeSubscriptionId,
       );
 
-      // Update local subscription
       await db.updateSubscription(ctx.user.id, {
         plan: "free",
         stripeSubscriptionId: null,
