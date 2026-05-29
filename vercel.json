@@ -1,4 +1,40 @@
 {
-  "buildCommand": "pnpm install && vite build && npx tsc --project tsconfig.server.json",
-  "framework": null
+  "version": 2,
+  "buildCommand": "pnpm install && node build-api.mjs && vite build",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "outputDirectory": "dist",
+  "functions": {
+    "api-dist/**/*.js": {
+      "runtime": "@vercel/node@5.0.0"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/trpc/:path*",
+      "destination": "/api-dist/trpc/[trpc]"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api-dist/auth/[auth]"
+    },
+    {
+      "source": "/api/oauth/:path*",
+      "destination": "/api-dist/oauth/[oauth]"
+    },
+    {
+      "source": "/api/stripe/:path*",
+      "destination": "/api-dist/stripe/[stripe]"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api-dist/cron/cleanup",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
