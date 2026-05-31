@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm install && node build-api.mjs && vite build",
+  "buildCommand": "pnpm install && vite build",
   "framework": null,
   "outputDirectory": "dist",
   "rewrites": [
