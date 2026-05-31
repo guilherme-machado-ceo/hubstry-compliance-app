@@ -1,7 +1,9 @@
-# Artefatos do Manus IDE
-.manus/
-.manus-logs/
-
-# Documentação
 README.md
-todo.md
+api/**/*.ts
+server/**/*.ts
+shared/**/*.ts
+drizzle/**/*.ts
+drizzle/**/*.sql
+build-api.mjs
+tsconfig.server.json
+setup-turso.cjs

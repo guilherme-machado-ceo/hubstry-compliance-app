@@ -1,32 +1,39 @@
 import { build } from 'esbuild';
-import { glob } from 'glob';
-import path from 'path';
+import { readdirSync } from 'fs';
+import { join, posix } from 'path';
 import { fileURLToPath } from 'url';
 
-const root = path.dirname(fileURLToPath(import.meta.url));
-const entryPoints = await glob('api/**/*.ts', { cwd: root });
+const root = fileURLToPath(new URL('.', import.meta.url));
 
-console.log('[build-api] Bundling', entryPoints.length, 'functions...');
+function findTsFiles(dir) {
+  const results = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...findTsFiles(full));
+    } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
+      results.push(full);
+    }
+  }
+  return results;
+}
 
-await build({
-  entryPoints: entryPoints.map(e => path.join(root, e)),
-  bundle: true,
-  platform: 'node',
-  target: 'node20',
-  format: 'esm',
-  outdir: path.join(root, 'api'),
-  outbase: path.join(root, 'api'),
-  external: [
-    '@libsql/client',
-    '@libsql/*',
-    'mysql2',
-    'jsdom',
-    'canvas',
-  ],
-  alias: {
-    '@shared': path.join(root, 'shared'),
-  },
-  logLevel: 'info',
-});
+const files = findTsFiles(join(root, 'api'));
+console.log('Bundling ' + files.length + ' API functions...');
 
-console.log('[build-api] Done!');
+for (const file of files) {
+  const out = file.replace(/\.ts$/, '.mjs');
+  await build({
+    entryPoints: [file],
+    outfile: out,
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    target: 'node20',
+    packages: 'external',
+    sourcemap: false,
+    logLevel: 'error',
+  });
+}
+
+console.log('Done!');
