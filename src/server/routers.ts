@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { COOKIE_NAME } from "../_shared/const";
-import { ECA_PILLARS } from "../_shared/pillars";
+import { COOKIE_NAME } from "../api/_shared/const";
+import { ECA_PILLARS } from "../api/_shared/pillars";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { clearCookieRaw } from "./_core/express5-compat";
 import { systemRouter } from "./_core/systemRouter";

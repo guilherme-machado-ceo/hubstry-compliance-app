@@ -6,8 +6,8 @@
     "type": "module",
     "license":  "ELv2",
     "scripts":  {
-                    "dev":  "concurrently -n \"vite,api\" -c \"cyan,magenta\" \"vite\" \"tsx watch api/_server/_core/dev-server.ts\"",
-                    "dev:full":  "BYPASS_AUTH=true concurrently -n \"vite,api\" -c \"cyan,magenta\" \"vite\" \"tsx watch api/_server/_core/dev-server.ts\"",
+                    "dev":  "concurrently -n \"vite,api\" -c \"cyan,magenta\" \"vite\" \"tsx watch src/server/_core/dev-server.ts\"",
+                    "dev:full":  "BYPASS_AUTH=true concurrently -n \"vite,api\" -c \"cyan,magenta\" \"vite\" \"tsx watch src/server/_core/dev-server.ts\"",
                     "build":  "vite build",
                     "start":  "vite preview",
                     "lint":  "eslint . --ext .ts,.tsx",
@@ -18,7 +18,7 @@
                     "test:ui":  "vitest --ui",
                     "test:coverage":  "vitest --coverage",
                     "db:push:dev":  "DATABASE_URL=file:./dev.db drizzle-kit push --config drizzle.sqlite.config.ts",
-                    "db:seed:dev":  "DATABASE_URL=file:./dev.db DATABASE_PROVIDER=sqlite tsx api/_server/seed.ts",
+                    "db:seed:dev":  "DATABASE_URL=file:./dev.db DATABASE_PROVIDER=sqlite tsx src/server/seed.ts",
                     "db:setup:dev":  "pnpm db:push:dev \u0026\u0026 pnpm db:seed:dev",
                     "db:reset:dev":  "rm -f dev.db \u0026\u0026 pnpm db:setup:dev"
                 },

@@ -1,5 +1,5 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../_shared/const";
-import { ForbiddenError } from "../../_shared/_core/errors";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../../api/_shared/const";
+import { ForbiddenError } from "../../api/_shared/_core/errors";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";

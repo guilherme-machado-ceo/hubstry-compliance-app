@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { resetMonthlyScans, deleteOldAudits } from "../_server/db";
+import { resetMonthlyScans, deleteOldAudits } from "../../src/server/db";
 
 /**
  * Vercel Cron endpoint — substitui node-cron (que nao funciona em serverless).
