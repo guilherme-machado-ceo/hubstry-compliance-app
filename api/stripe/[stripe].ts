@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import * as db from "../../src/server/db";
+import * as db from "../server/db";
 
 // Let Stripe use its bundled default API version to avoid type mismatch
 const stripe = new Stripe(

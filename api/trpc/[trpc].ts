@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { appRouter } from "../../src/server/routers";
-import { createContext } from "../../src/server/_core/context";
+import { appRouter } from "../server/routers";
+import { createContext } from "../server/_core/context";
 
 export const config = {
   maxDuration: 30,
