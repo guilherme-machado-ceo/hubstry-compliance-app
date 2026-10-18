@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,15 +31,12 @@ export default function Home() {
       {/* Navigation */}
       <nav className="border-b border-white/5 backdrop-blur-md bg-[#0A0A1A]/80 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${brand}, ${brandLight})` }}>
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold tracking-tight">Hubstry Compliance</span>
-              <span className="text-[10px] text-white/40 -mt-1 tracking-wider uppercase">by Hubstry Deep Tech</span>
-            </div>
-          </div>
+          <a href="/" className="flex items-center gap-3" aria-label="Hubstry Compliance — início">
+            <BrandLogo variant="light" height={20} />
+            <span className="text-[11px] font-medium text-white/50 tracking-[0.2em] uppercase border-l border-white/10 pl-3">
+              Compliance
+            </span>
+          </a>
           <div className="flex gap-3">
             <Button
               variant="ghost"
@@ -264,15 +262,19 @@ export default function Home() {
       <footer className="border-t border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${brand}, ${brandLight})` }}>
-                <Shield className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <span className="font-semibold text-sm">Hubstry Compliance</span>
-                <span className="text-white/30 text-xs ml-2">© 2026 Hubstry Deep Tech</span>
-              </div>
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <BrandLogo variant="light" height={16} />
+              <span className="text-white/30 text-xs">Hubstry Compliance · © 2026 Hubstry Deep Tech</span>
             </div>
+            {/* Selo oficial NVIDIA Inception (arquivo sem alterações) — só na landing,
+                nunca junto de auditorias ou scores. */}
+            <img
+              src="/brand/nvidia-inception-program-badge-rgb-for-screen.svg"
+              alt="Membro do NVIDIA Inception Program"
+              width={139}
+              height={60}
+              decoding="async"
+            />
             <div className="flex items-center gap-6 text-sm text-white/30">
               <a href="mailto:guilhermemachado@hubstry.onmicrosoft.com" className="hover:text-white/60 transition">Contato</a>
               <a href="https://hubstry.dev" className="hover:text-white/60 transition" target="_blank" rel="noopener">hubstry.dev</a>
