@@ -19,13 +19,14 @@ efetivo no GitHub só existe quando a pull request é aberta.
 | 2026-10-18 | `CLAUDE.md` com circuito, regras e decisões | PR #14 |
 | 2026-10-18 | Marca Hubstry, favicon e selo NVIDIA Inception | PR #15, ADR-0010 |
 | 2026-10-18 | Mitigações por configuração: `CRON_SECRET` criado; bypass neutralizado | ADR-0009 |
-| 2026-10-18 | PR-4 concluído: proteção SSRF no scanner (faixas IANA, DNS validado, redirects revalidados, portas 80/443, limites de prazo e tamanho). Validada por testes com DNS e sockets simulados; comportamento em runtime real depende de validação em preview | PR #17, ADR-0008 |
+| 2026-10-18 | PR-4 concluído: proteção SSRF no scanner (faixas IANA, DNS validado, redirects revalidados, portas 80/443, limites de prazo e tamanho). Validada por testes com DNS e sockets simulados e no preview da Vercel (site público concluído; três endereços reservados recusados antes de conectar) | PR #17, ADR-0008 |
+| 2026-10-18 | Nova landing, página Sobre (posicionamento e manifesto) e planos alinhados ao backend | PR #19, ADR-0010 |
 
 ## Agora — segurança
 
 | Item | Escopo | Referência |
 |---|---|---|
-| PR-5 | Cron fail-closed + agendamento versionado: **implementado no código e coberto por testes com banco simulado; em validação** (branch `fix/cron-fail-closed`). Só passa a "implementado" depois de validado em preview e confirmado em produção. A retenção automática de 90 dias prometida no README **só é operacional depois** que o deploy com o cron ativo rodar e a execução for confirmada nos logs da Vercel. Escopo atual: apenas auditorias `completed` com mais de 90 dias. **Decisão pendente:** apagar também `failed`/`pending` | ADR-0009, ADR-0011 |
+| PR-5 | Cron fail-closed e agendamento versionado integrados no PR #18; primeira execução em produção ainda aguarda confirmação nos logs da Vercel. Escopo atual da retenção: apenas auditorias `completed` com mais de 90 dias. **Decisão pendente:** apagar também `failed`/`pending` | PR #18, ADR-0009, ADR-0011 |
 
 ## A seguir — confiabilidade do motor e higiene
 
@@ -39,6 +40,14 @@ efetivo no GitHub só existe quando a pull request é aberta.
 | Limpeza do template | Remover analytics `analytics.manus.im` e outras sobras; arquivos `.ps1`/`.patch` soltos | decisão pendente |
 | Autenticação | Remover modo demo/bypass; proteger o `state` do OAuth | ADR-0009 |
 | Banco | Definir schema canônico; corrigir `insertId`; scan assíncrono confiável (`waitUntil`/persistência); isolamento do banco de preview | decisão pendente |
+
+## Produto e direitos do usuário (identificados em 2026-10-18)
+
+| Item | Escopo | Referência |
+|---|---|---|
+| Cancelamento e troca de plano | Portal do cliente do Stripe para cancelamento e troca de plano; manter canal eletrônico adequado para solicitações de cancelamento (Decreto nº 7.962/2013, art. 4º, V); hoje só pelo e-mail | decisão pendente |
+| Exclusão de dados pelo titular | Interface para `audits.delete` e `gdpr.deleteAccount` (art. 18 da LGPD); hoje só pelo e-mail | decisão pendente |
+| Login além do GitHub | Google ou e-mail com link mágico, para DPOs, advogados e gestores | decisão pendente |
 
 ## Depois — validação e expansão
 
