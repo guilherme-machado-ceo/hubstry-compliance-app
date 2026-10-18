@@ -1,0 +1,74 @@
+{
+  "descricao": "Fixtures de regressão do scanner. Testam apenas a AUSÊNCIA de falsos positivos já demonstrados. Não fixam severidades, exigências de consentimento nem classificação de acesso provável por crianças — esses critérios dependem da fundamentação normativa definida pela Luna.",
+  "fixtures": [
+    {
+      "arquivo": "idade-fourteen.html",
+      "origem": "sintetica",
+      "nao_deve_gerar": [
+        "publico_infantojuvenil"
+      ],
+      "motivo": "'fourteen' contém a substring 'teen'"
+    },
+    {
+      "arquivo": "idade-kidney.html",
+      "origem": "sintetica",
+      "nao_deve_gerar": [
+        "publico_infantojuvenil"
+      ],
+      "motivo": "'kidney' contém a substring 'kid'"
+    },
+    {
+      "arquivo": "idade-script-gamemode.html",
+      "origem": "sintetica",
+      "nao_deve_gerar": [
+        "publico_infantojuvenil"
+      ],
+      "motivo": "palavras dentro de <script> não são conteúdo visível ao usuário"
+    },
+    {
+      "arquivo": "form-busca.html",
+      "origem": "sintetica",
+      "nao_deve_gerar": [
+        "roach_motel"
+      ],
+      "motivo": "formulário de busca não é fluxo de assinatura/cancelamento"
+    },
+    {
+      "arquivo": "sem-rastreadores-en.html",
+      "origem": "sintetica",
+      "nao_deve_gerar": [
+        "ausencia_banner_consentimento"
+      ],
+      "motivo": "nenhum rastreador ou cookie de terceiro detectável; página em inglês"
+    },
+    {
+      "arquivo": "sem-rastreadores-pt.html",
+      "origem": "sintetica",
+      "nao_deve_gerar": [
+        "ausencia_banner_consentimento"
+      ],
+      "motivo": "mesmo caso em português. Hoje passa apenas porque a palavra 'privacidade' (link no rodapé) é aceita como mecanismo de consentimento — registra o comportamento atual, não um critério correto"
+    },
+    {
+      "arquivo": "portal-enciclopedia-sintetico.html",
+      "origem": "sintetica",
+      "inspirado_em": "https://www.wikipedia.org",
+      "nao_deve_gerar": [
+        "publico_infantojuvenil",
+        "roach_motel",
+        "ausencia_banner_consentimento"
+      ],
+      "motivo": "reproduz a estrutura do portal (busca, lista de idiomas, script inline, sem rastreadores). NÃO é cópia do HTML real e não comprova conformidade integral de nenhum site."
+    }
+  ],
+  "coletas_reais": [
+    {
+      "url": "https://www.wikipedia.org",
+      "data_scan_observado": "2026-10-18",
+      "resultado_observado": "score 60%; 'Verificação de Idade Ausente' (crítica), 'Mecanismo de Consentimento Não Encontrado' (crítica), 'Padrão de Roach Motel' (aviso)",
+      "html_coletado": false,
+      "observacao": "HTML real não versionado: o ambiente de desenvolvimento não tinha acesso de rede ao site. Coletar com data e incluir como fixture complementar; não usar como única fonte de teste, pois o HTML muda."
+    }
+  ],
+  "fixtures_nota": "As fixtures evitam citar 'cookies' no texto: a regra atual aceita a simples menção da palavra como mecanismo de consentimento, o que mascararia o caso."
+}

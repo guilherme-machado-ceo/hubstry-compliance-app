@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Free Encyclopedia Portal (fixture sintética)</title>
+  <script>
+    // Script inline típico de portal: detecção de idioma e preferências.
+    var langPrefs = { fallback: "en", steenFlag: false };
+    function onSearch(){ return true; }
+  </script>
+</head>
+<body>
+  <h1>Free Encyclopedia</h1>
+  <form role="search" action="/search" method="get">
+    <input type="search" name="search" aria-label="Search">
+    <button type="submit">Search</button>
+  </form>
+  <nav aria-label="Languages">
+    <a lang="en" href="//en.example.org">English</a>
+    <a lang="nl" href="//nl.example.org">Nederlands</a>
+    <a lang="sw" href="//sw.example.org">Kiswahili</a>
+    <a lang="pt" href="//pt.example.org">Português</a>
+    <a lang="nds" href="//nds.example.org">Plattdüütsch</a>
+  </nav>
+  <p>Over fourteen thousand volunteers contribute every month.</p>
+  <footer>
+    <a href="/terms">Terms of Use</a>
+    <a href="/privacy">Privacy Policy</a>
+  </footer>
+</body>
+</html>
