@@ -2,6 +2,9 @@
   "buildCommand": "pnpm install && vite build",
   "framework": null,
   "outputDirectory": "dist",
+  "crons": [
+    { "path": "/api/cron/cleanup", "schedule": "0 3 * * *" }
+  ],
   "rewrites": [
     { "source": "/api/trpc/:path*", "destination": "/api/trpc/[trpc]" },
     { "source": "/api/auth/:path*", "destination": "/api/auth/[auth]" },
