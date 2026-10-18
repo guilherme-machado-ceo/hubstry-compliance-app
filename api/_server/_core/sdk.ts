@@ -1,12 +1,12 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../_shared/const";
-import { ForbiddenError } from "../../_shared/_core/errors";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../../_shared/const.js";
+import { ForbiddenError } from "../../_shared/_core/errors.js";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
-import type { User } from "../../../drizzle/schema";
-import * as db from "../db";
-import { ENV } from "./env";
-import { getHeader } from "./express5-compat";
+import type { User } from "../../../drizzle/schema.js";
+import * as db from "../db.js";
+import { ENV } from "./env.js";
+import { getHeader } from "./express5-compat.js";
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;

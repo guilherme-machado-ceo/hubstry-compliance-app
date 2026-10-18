@@ -1,14 +1,14 @@
 import { TRPCError } from "@trpc/server";
-import { COOKIE_NAME } from "../_shared/const";
-import { ECA_PILLARS } from "../_shared/pillars";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { clearCookieRaw } from "./_core/express5-compat";
-import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { COOKIE_NAME } from "../_shared/const.js";
+import { ECA_PILLARS } from "../_shared/pillars.js";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { clearCookieRaw } from "./_core/express5-compat.js";
+import { systemRouter } from "./_core/systemRouter.js";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
-import * as db from "./db";
-import { scanUrl } from "./scanner";
-import { stripeRouter } from "./stripe-router";
+import * as db from "./db.js";
+import { scanUrl } from "./scanner.js";
+import { stripeRouter } from "./stripe-router.js";
 
 export const appRouter = router({
   system: systemRouter,

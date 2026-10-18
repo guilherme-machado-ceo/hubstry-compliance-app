@@ -6,10 +6,10 @@ config({ path: '.env.development', override: true });
 import cors from 'cors';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import express from 'express';
-import { createContext } from './context';
-import { appRouter } from '../routers';
-import { registerOAuthRoutes } from './oauth';
-import { registerMonthlyResetJob } from '../jobs/reset-monthly-scans';
+import { createContext } from './context.js';
+import { appRouter } from '../routers.js';
+import { registerOAuthRoutes } from './oauth.js';
+import { registerMonthlyResetJob } from '../jobs/reset-monthly-scans.js';
 
 const app = express();
 
