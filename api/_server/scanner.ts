@@ -8,6 +8,7 @@
  */
 
 import { ECA_PILLARS } from "../_shared/pillars.js";
+import { safeFetchText } from "./safe-fetch.js";
 
 export interface ScanResult {
   violations: ViolationDetail[];
@@ -498,85 +499,13 @@ function detectAccessibility(document: Document): ViolationDetail[] {
   return violations;
 }
 
-function assertSafeUrl(url: string): void {
-  const parsed = new URL(url);
-
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    throw new Error("Protocolo nao permitido. Use http:// ou https://");
-  }
-
-  const hostname = parsed.hostname.toLowerCase();
-
-  const blockedHostnames = [
-    "localhost",
-    "0.0.0.0",
-    "::1",
-    "[::1]",
-  ];
-  if (blockedHostnames.includes(hostname)) {
-    throw new Error("URL aponta para host local nao permitido");
-  }
-
-  const privateRanges = [
-    /^127\./,
-    /^10\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^192\.168\./,
-    /^169\.254\./,
-    /^fc00:/i,
-    /^fe80:/i,
-  ];
-
-  if (privateRanges.some((r) => r.test(hostname))) {
-    throw new Error("URL aponta para rede privada nao permitida");
-  }
-
-  const blockedPatterns = [
-    "169.254.169.254",
-    "metadata.google.internal",
-  ];
-  if (blockedPatterns.some((p) => hostname.includes(p))) {
-    throw new Error("URL nao permitida");
-  }
-}
-
 /**
  * Fetch and scan a URL
+ *
+ * A validacao de destino (SSRF), redirects, prazo e limite de tamanho ficam em
+ * safe-fetch.ts.
  */
 export async function scanUrl(url: string): Promise<ScanResult> {
-  assertSafeUrl(url);
-
-  try {
-    // Fetch the page
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}: ${response.statusText}`,
-        );
-      }
-
-      const htmlContent = await response.text();
-
-      // Scan for violations
-      const result = await scanHtmlForViolations(htmlContent);
-
-      return result;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  } catch (error) {
-    throw error;
-  }
+  const htmlContent = await safeFetchText(url);
+  return scanHtmlForViolations(htmlContent);
 }
