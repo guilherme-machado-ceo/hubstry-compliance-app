@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
@@ -24,6 +25,7 @@ export function Dot({ color, className = "" }: { color: string; className?: stri
 
 export function SiteHeader() {
   const [, navigate] = useLocation();
+  const { isAuthenticated } = useAuth();
   return (
     <header className="border-b" style={{ borderColor: HB.line }}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
@@ -43,9 +45,9 @@ export function SiteHeader() {
           <button
             className="hb-focus ml-1 px-4 py-2 rounded-md font-medium text-black"
             style={{ background: HB.cyan }}
-            onClick={() => (window.location.href = getLoginUrl())}
+            onClick={() => (isAuthenticated ? navigate("/dashboard") : (window.location.href = getLoginUrl()))}
           >
-            Entrar
+            {isAuthenticated ? "Ir para o painel" : "Entrar"}
           </button>
         </nav>
       </div>

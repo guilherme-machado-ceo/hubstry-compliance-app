@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Download, Loader2, Zap, Star } from "lucide-react";
+import { ArrowLeft, AlertCircle, CheckCircle, AlertTriangle, Info, Loader2, Link2 } from "lucide-react";
 import { useParams } from "wouter";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -59,9 +59,9 @@ export default function AuditDetail() {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
-          <p className="text-slate-600">Auditoria não encontrada</p>
+          <p className="text-muted-foreground">Auditoria não encontrada</p>
           <Button onClick={() => navigate("/dashboard")} className="mt-4">
-            Voltar ao Dashboard
+            Voltar às auditorias
           </Button>
         </div>
       </DashboardLayout>
@@ -72,12 +72,12 @@ export default function AuditDetail() {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
-          <h2 className="text-2xl font-bold">Análise em andamento...</h2>
-          <p className="text-slate-500">Verificando {audit.url} — isso pode levar até 30 segundos</p>
+          <Loader2 className="w-12 h-12 animate-spin" style={{ color: "#00FFFF" }} />
+          <h2 className="text-2xl font-bold">Análise em andamento</h2>
+          <p className="text-muted-foreground">Analisando {audit.url}. Isso pode levar até 30 segundos.</p>
           <Button variant="outline" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar ao Dashboard
+            Voltar às auditorias
           </Button>
         </div>
       </DashboardLayout>
@@ -89,286 +89,160 @@ export default function AuditDetail() {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500" />
-          <h2 className="text-2xl font-bold">Análise falhou</h2>
-          {errorMessage && <p className="text-slate-600 max-w-md">{errorMessage}</p>}
-          <p className="text-slate-500">Verifique se a URL é válida e acessível.</p>
+          <AlertCircle className="w-12 h-12" style={{ color: "#FF6605" }} />
+          <h2 className="text-2xl font-bold">A análise não foi concluída</h2>
+          {errorMessage && <p className="text-muted-foreground max-w-md">{errorMessage}</p>}
+          <p className="text-muted-foreground">Confira se o endereço está correto e se a página é pública, e tente de novo.</p>
           <Button onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar ao Dashboard
+            Voltar às auditorias
           </Button>
         </div>
       </DashboardLayout>
     );
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+  // Paleta Hubstry: ciano = observado; âmbar = atenção; laranja = revisão prioritária
+  const SEVERITY: Record<string, { label: string; color: string; Icon: typeof Info }> = {
+    critical: { label: "Crítico", color: "#FF6605", Icon: AlertCircle },
+    warning: { label: "Atenção", color: "#E8B931", Icon: AlertTriangle },
+    info: { label: "Informativo", color: "#00FFFF", Icon: Info },
   };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return <AlertCircle className="w-5 h-5 text-red-600" />;
-      case "warning":
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
-      default:
-        return <Info className="w-5 h-5 text-blue-600" />;
-    }
-  };
-
-  const getSeverityBg = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return "bg-red-50 border-red-200";
-      case "warning":
-        return "bg-yellow-50 border-yellow-200";
-      default:
-        return "bg-blue-50 border-blue-200";
-    }
-  };
+  const scoreColor = (score: number) => (score >= 80 ? "#00FFFF" : score >= 60 ? "#E8B931" : "#FF6605");
+  const score = audit.complianceScore || 0;
+  const findings = (audit.violations ?? []) as Array<{
+    severity: string; title: string; description: string; recommendation?: string | null; elementSelector?: string | null;
+  }>;
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-          >
+      <div className="max-w-5xl space-y-10">
+        <header className="space-y-4">
+          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
+            Auditorias
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{audit.domain}</h1>
-            <p className="text-slate-600 text-sm mt-1">{audit.url}</p>
+            <h1 className="hb-display text-3xl sm:text-4xl font-bold break-all">{audit.domain}</h1>
+            <p className="text-muted-foreground text-sm mt-1 break-all">{audit.url}</p>
           </div>
+          <p className="text-sm text-muted-foreground border-l-2 pl-3 max-w-[70ch]" style={{ borderColor: "#FF6605" }}>
+            Triagem automática do HTML inicial retornado pelo servidor. Os achados indicam pontos para
+            revisão humana; este relatório não é parecer jurídico nem atestado de conformidade.
+          </p>
+        </header>
+
+        {/* Resumo */}
+        <section className="grid grid-cols-2 md:grid-cols-4 border border-border rounded-lg divide-x divide-y md:divide-y-0 divide-border">
+          <div className="p-6">
+            <p className="hb-display text-5xl font-bold" style={{ color: scoreColor(score) }}>{score}%</p>
+            <p className="text-muted-foreground text-sm mt-2">Score da triagem</p>
+          </div>
+          {(["critical", "warning", "info"] as const).map((k) => (
+            <div key={k} className="p-6">
+              <p className="hb-display text-3xl font-bold" style={{ color: SEVERITY[k]!.color }}>
+                {k === "critical" ? audit.criticalViolations : k === "warning" ? audit.warningViolations : audit.infoViolations}
+              </p>
+              <p className="text-muted-foreground text-sm mt-2">{SEVERITY[k]!.label}</p>
+            </div>
+          ))}
+        </section>
+
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" disabled title="Exportação em PDF ainda não disponível">
+            Exportar PDF (em breve)
+          </Button>
+          <Button
+            variant="outline"
+            title="O link só abre para quem estiver logado nesta conta"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href)
+                .then(() => toast.success("Link copiado. Ele só abre para quem estiver logado nesta conta."))
+                .catch(() => toast.error("Não foi possível copiar o link"));
+            }}
+          >
+            <Link2 className="w-4 h-4 mr-2" />
+            Copiar link
+          </Button>
         </div>
 
-        {/* Score Card */}
-        <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200 p-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className={`text-5xl font-bold ${getScoreColor(audit.complianceScore || 0)}`}>
-                {audit.complianceScore || 0}%
-              </div>
-              <p className="text-slate-600 mt-2">Score de Conformidade</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">{audit.criticalViolations}</div>
-              <p className="text-slate-600 mt-2">Críticas</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600">{audit.warningViolations}</div>
-              <p className="text-slate-600 mt-2">Avisos</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{audit.infoViolations}</div>
-              <p className="text-slate-600 mt-2">Informações</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Export & Share */}
-        {(() => {
-          const plan = subscription?.plan;
-          const isPro = plan === "pro" || plan === "enterprise";
-          const isEnterprise = plan === "enterprise";
-          return (
-            <div className="space-y-3">
-              <div className="flex gap-3 flex-wrap">
-                {isPro ? (
-                  <Button
-                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-                    onClick={() => toast.info("Exportação de PDF em breve")}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar PDF
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => window.location.assign("/pricing")}
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Exportar PDF — disponível no plano Pro
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href)
-                      .then(() => toast.success("Link copiado para a área de transferência"))
-                      .catch(() => toast.error("Não foi possível copiar o link"));
-                  }}
-                >
-                  Compartilhar Relatório
-                </Button>
-              </div>
-
-              {isEnterprise && (
-                <Card className="bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Star className="w-5 h-5 text-violet-600" />
-                    <h4 className="font-semibold text-violet-800">Funcionalidades Enterprise</h4>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm text-violet-700">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-violet-500" />
-                      <span>API access <span className="text-violet-400 text-xs">(em breve)</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-violet-500" />
-                      <span>Suporte prioritário <span className="text-violet-400 text-xs">(em breve)</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-violet-500" />
-                      <span>Webhooks customizados <span className="text-violet-400 text-xs">(em breve)</span></span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-violet-500" />
-                      <span>Histórico ilimitado</span>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {!isPro && (
-                <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-blue-800 text-sm">Desbloqueie recursos avançados</p>
-                      <p className="text-blue-600 text-xs mt-0.5">PDF export, histórico completo e muito mais no plano Pro.</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shrink-0 ml-4"
-                      onClick={() => window.location.assign("/pricing")}
-                    >
-                      <Zap className="w-4 h-4 mr-1" />
-                      Ver Planos
-                    </Button>
-                  </div>
-                </Card>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* Pillars */}
+        {/* Temas */}
         {"pillars" in audit && Array.isArray(audit.pillars) && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6">8 Pilares ECA Digital</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <section aria-labelledby="temas">
+            <h2 id="temas" className="text-xl font-semibold mb-4">Temas da análise</h2>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {(audit.pillars as Array<{ id: string; name: string; weight: number; passed: boolean; violations: unknown[] }>).map((pillar) => (
-                <Card
-                  key={pillar.id}
-                  className={`p-4 flex flex-col items-center text-center gap-2 border-2 ${
-                    pillar.passed ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"
-                  }`}
-                >
-                  {pillar.passed ? (
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <AlertCircle className="w-6 h-6 text-red-600" />
-                  )}
-                  <p className="font-semibold text-xs leading-tight">{pillar.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {pillar.passed
-                      ? "Aprovado"
-                      : `${pillar.violations.length} violação${pillar.violations.length !== 1 ? "ões" : ""}`}
-                  </p>
-                  <p className="text-xs text-slate-400">Peso: {Math.round(pillar.weight * 100)}%</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Violations */}
-        {audit.violations && audit.violations.length > 0 ? (
-          <div>
-            <h2 className="text-2xl font-bold mb-6">Violações Encontradas</h2>
-            <div className="space-y-4">
-              {audit.violations.map((violation: any, i: number) => (
-                <Card
-                  key={i}
-                  className={`p-6 border-l-4 ${getSeverityBg(violation.severity)}`}
-                >
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      {getSeverityIcon(violation.severity)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-lg">{violation.title}</h3>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          violation.severity === "critical"
-                            ? "bg-red-200 text-red-800"
-                            : violation.severity === "warning"
-                            ? "bg-yellow-200 text-yellow-800"
-                            : "bg-blue-200 text-blue-800"
-                        }`}>
-                          {violation.severity === "critical"
-                            ? "Crítica"
-                            : violation.severity === "warning"
-                            ? "Aviso"
-                            : "Informação"}
-                        </span>
-                      </div>
-                      <p className="text-slate-700 mb-3">{violation.description}</p>
-                      {violation.recommendation && (
-                        <div className="bg-white bg-opacity-50 p-3 rounded border-l-2 border-blue-400">
-                          <p className="text-sm font-semibold text-slate-700 mb-1">Recomendação:</p>
-                          <p className="text-sm text-slate-600">{violation.recommendation}</p>
-                        </div>
-                      )}
-                      {violation.elementSelector && (
-                        <p className="text-xs text-slate-500 mt-3 font-mono">
-                          Seletor: {violation.elementSelector}
-                        </p>
-                      )}
-                    </div>
+                <li key={pillar.id} className="border border-border rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden="true" className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: pillar.passed ? "#00FFFF" : "#FF6605" }} />
+                    <p className="font-medium text-sm">{pillar.name}</p>
                   </div>
-                </Card>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {pillar.passed
+                      ? "Sem achados"
+                      : `${pillar.violations.length} ${pillar.violations.length === 1 ? "achado" : "achados"}`}
+                    , peso {Math.round(pillar.weight * 100)}%
+                  </p>
+                </li>
               ))}
-            </div>
-          </div>
-        ) : (
-          <Card className="p-12 text-center">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-            <p className="text-slate-600 text-lg font-semibold">Nenhuma violação encontrada!</p>
-            <p className="text-slate-500">Este site está em conformidade com os padrões analisados.</p>
-          </Card>
+            </ul>
+          </section>
         )}
 
-        {/* Recommendations */}
-        <Card className="bg-blue-50 border-blue-200 p-6">
-          <h3 className="font-semibold text-lg mb-4">Próximos Passos</h3>
-          <ul className="space-y-2 text-slate-700">
-            <li className="flex gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <span>Revise todas as violações críticas primeiro</span>
-            </li>
-            <li className="flex gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <span>Implemente as recomendações fornecidas</span>
-            </li>
-            <li className="flex gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <span>Execute uma nova auditoria após as correções</span>
-            </li>
-            <li className="flex gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <span>Documente as mudanças para conformidade</span>
-            </li>
-          </ul>
-        </Card>
+        {/* Achados */}
+        <section aria-labelledby="achados">
+          <h2 id="achados" className="text-xl font-semibold mb-4">Achados</h2>
+          {findings.length > 0 ? (
+            <ul className="space-y-4">
+              {findings.map((f, i) => {
+                const sev = SEVERITY[f.severity] ?? SEVERITY["info"]!;
+                return (
+                  <li key={i} className="border border-border rounded-lg p-6 border-l-4" style={{ borderLeftColor: sev.color }}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <sev.Icon className="w-5 h-5 shrink-0" style={{ color: sev.color }} />
+                        {f.title}
+                      </h3>
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full border" style={{ borderColor: sev.color, color: sev.color }}>
+                        {sev.label}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground mt-3 leading-relaxed">{f.description}</p>
+                    {f.recommendation && (
+                      <div className="mt-4 border-l-2 pl-4" style={{ borderColor: "#00FFFF" }}>
+                        <p className="text-sm font-semibold">Recomendação</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{f.recommendation}</p>
+                      </div>
+                    )}
+                    {f.elementSelector && (
+                      <p className="text-xs text-muted-foreground mt-3">Seletor: <code>{f.elementSelector}</code></p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="border border-dashed border-border rounded-lg p-10 text-center">
+              <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: "#00FFFF" }} />
+              <p className="font-medium">Nenhum ponto de atenção encontrado na análise automática</p>
+              <p className="text-muted-foreground text-sm mt-1 max-w-[60ch] mx-auto">
+                Isso não equivale a um atestado de conformidade: a triagem cobre apenas o HTML inicial
+                e os temas listados acima.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* Próximos passos — sequência real */}
+        <section aria-labelledby="proximos" className="border border-border rounded-lg p-6">
+          <h2 id="proximos" className="text-xl font-semibold mb-4">Próximos passos</h2>
+          <ol className="space-y-2 text-muted-foreground list-decimal pl-5">
+            <li>Revise primeiro os achados marcados como críticos.</li>
+            <li>Avalie cada achado no contexto do seu serviço, com apoio jurídico quando necessário.</li>
+            <li>Aplique as correções que fizerem sentido.</li>
+            <li>Faça uma nova análise para conferir o resultado.</li>
+          </ol>
+        </section>
       </div>
     </DashboardLayout>
   );

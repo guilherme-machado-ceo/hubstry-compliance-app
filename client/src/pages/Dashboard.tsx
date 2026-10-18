@@ -117,173 +117,145 @@ export default function Dashboard() {
     }
   };
 
-  const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
-
-  const scansRemaining = subscription && !isPro
-    ? subscription.scansPerMonth - subscription.scansUsedThisMonth
+  // Limite real do plano (o backend aplica: -1 = ilimitado)
+  const isUnlimited = subscription?.scansPerMonth === -1;
+  const scansRemaining = subscription && !isUnlimited
+    ? Math.max(0, subscription.scansPerMonth - subscription.scansUsedThisMonth)
     : 0;
+  const limitReached = !!subscription && !isUnlimited && scansRemaining <= 0;
+  const planLabel = subscription
+    ? { free: "Free", pro: "Pro", enterprise: "Enterprise" }[subscription.plan] ?? subscription.plan
+    : "";
+
+  const statusStyle: Record<string, { label: string; color: string }> = {
+    completed: { label: "Concluída", color: "#00FFFF" },
+    failed: { label: "Erro", color: "#FF6605" },
+    pending: { label: "Processando", color: "#E8B931" },
+  };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard de Auditorias</h1>
-          <p className="text-slate-600 mt-2">Gerencie e acompanhe suas auditorias de conformidade</p>
-        </div>
+      <div className="max-w-5xl space-y-10">
+        <header>
+          <h1 className="hb-display text-3xl sm:text-4xl font-bold">Auditorias</h1>
+          <p className="text-muted-foreground mt-2">
+            Triagem automática do HTML inicial dos sites. Os achados indicam pontos para revisão humana.
+          </p>
+        </header>
 
-        {/* Subscription Info */}
-        <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-semibold text-lg">Plano: {subscription?.plan.toUpperCase()}</h3>
-              <p className="text-slate-600">
-                {isPro
-                  ? "Scans ilimitados"
-                  : `${scansRemaining} scan${scansRemaining !== 1 ? "s" : ""} restante${scansRemaining !== 1 ? "s" : ""} este mês`}
-              </p>
-              {!isPro && (
-                <p className="text-slate-400 text-xs mt-1">
-                  Seus scans reiniciam no dia 1º de cada mês.
-                </p>
-              )}
-            </div>
-            <Button variant="outline" onClick={() => navigate("/pricing")}>Gerenciar Plano</Button>
+        {/* Plano e saldo */}
+        <section className="flex flex-wrap items-center justify-between gap-4 border border-border rounded-lg px-6 py-5">
+          <div>
+            <p className="font-semibold">Plano {planLabel}</p>
+            <p className="text-muted-foreground text-sm mt-1">
+              {isUnlimited
+                ? "Análises ilimitadas"
+                : `${scansRemaining} ${scansRemaining === 1 ? "análise restante" : "análises restantes"} este mês. O saldo reinicia no dia 1º.`}
+            </p>
           </div>
-        </Card>
+          <Button variant="outline" onClick={() => navigate("/pricing")}>Ver planos</Button>
+        </section>
 
-        {/* Scanner Section */}
-        <Card className="p-8">
-          <h2 className="text-2xl font-bold mb-6">Nova Auditoria</h2>
-          <div className="space-y-4">
-            <div className="flex gap-3">
-              <Input
-                placeholder="https://seu-site.com"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleScan()}
-                disabled={isScanning || (!isPro && scansRemaining <= 0)}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleScan}
-                disabled={isScanning || (!isPro && scansRemaining <= 0)}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-              >
-                {isScanning ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analisando...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Escanear
-                  </>
-                )}
+        {/* Nova análise */}
+        <section aria-labelledby="nova-analise">
+          <h2 id="nova-analise" className="text-xl font-semibold mb-4">Nova análise</h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              placeholder="https://seu-site.com"
+              aria-label="Endereço do site"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleScan()}
+              disabled={isScanning || limitReached}
+              className="flex-1 h-11"
+            />
+            <Button onClick={handleScan} disabled={isScanning || limitReached} className="h-11 px-6 font-semibold">
+              {isScanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Analisando…
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Analisar
+                </>
+              )}
+            </Button>
+          </div>
+          {isScanning && (
+            <p className="text-sm text-muted-foreground mt-3">
+              Analisando {scanningUrl || "o site"}. Isso pode levar até 30 segundos.
+            </p>
+          )}
+          {limitReached && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border rounded-lg p-4" style={{ borderColor: "#FF6605" }}>
+              <p className="text-sm">
+                Você usou todas as análises do mês. O saldo reinicia no dia 1º, ou mude de plano agora.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => navigate("/pricing")}>
+                <Zap className="w-4 h-4 mr-1" />
+                Ver planos
               </Button>
             </div>
-            {isScanning && (
-              <p className="text-sm text-slate-500 animate-pulse">
-                Analisando {scanningUrl || "o site"}... isso pode levar até 30 segundos
-              </p>
-            )}
-            {!isPro && scansRemaining <= 0 && (
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div>
-                  <p className="text-amber-800 font-medium text-sm">
-                    Você atingiu o limite de scans este mês.
-                  </p>
-                  <p className="text-amber-600 text-xs mt-0.5">
-                    Reinicia em 1º do próximo mês ou faça upgrade agora.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shrink-0 ml-4"
-                  onClick={() => navigate("/pricing")}
-                >
-                  <Zap className="w-4 h-4 mr-1" />
-                  Fazer Upgrade
-                </Button>
-              </div>
-            )}
-          </div>
-        </Card>
+          )}
+        </section>
 
-        {/* Audits List */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Histórico de Auditorias</h2>
+        {/* Histórico */}
+        <section aria-labelledby="historico">
+          <h2 id="historico" className="text-xl font-semibold mb-4">Histórico</h2>
           {auditLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-pulse">Carregando auditorias...</div>
-            </div>
+            <p className="text-muted-foreground py-8">Carregando auditorias…</p>
           ) : audits && audits.length > 0 ? (
-            <div className="space-y-4">
-              {audits.map((audit) => (
-                <Card
-                  key={audit.id}
-                  className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/audit/${audit.id}`)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{audit.domain}</h3>
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            audit.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : audit.status === "failed"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {audit.status === "completed"
-                            ? "Concluído"
-                            : audit.status === "failed"
-                            ? "Erro"
-                            : "Processando"}
+            <ul className="border border-border rounded-lg divide-y divide-border">
+              {audits.map((audit) => {
+                const st = statusStyle[audit.status] ?? statusStyle["pending"]!;
+                return (
+                  <li key={audit.id}>
+                    <button
+                      className="w-full text-left px-6 py-5 flex flex-wrap items-center justify-between gap-4 hover:bg-accent/60 transition-colors focus-visible:outline-2 focus-visible:outline-[#00FFFF]"
+                      onClick={() => navigate(`/audit/${audit.id}`)}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold truncate">{audit.domain}</span>
+                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full" style={{ background: st.color }} />
+                            {st.label}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-sm mt-1 truncate">{audit.url}</p>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm">
+                        {audit.status === "completed" && (
+                          <>
+                            <span className="flex items-center gap-2">
+                              <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                              Score {audit.complianceScore}%
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                              {audit.totalViolations} {audit.totalViolations === 1 ? "achado" : "achados"}
+                            </span>
+                          </>
+                        )}
+                        <span className="text-muted-foreground">
+                          {new Date(audit.createdAt).toLocaleDateString("pt-BR")}
                         </span>
                       </div>
-                      <p className="text-slate-600 text-sm mb-3">{audit.url}</p>
-                      {audit.status === "completed" && (
-                        <div className="flex gap-6 text-sm">
-                          <div className="flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-blue-600" />
-                            <span>Score: {audit.complianceScore}%</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-red-600" />
-                            <span>{audit.totalViolations} violações</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-slate-600 text-sm">
-                        {new Date(audit.createdAt).toLocaleDateString("pt-BR")}
-                      </p>
-                      {audit.status === "completed" && (
-                        <div className="mt-2">
-                          <Button size="sm" variant="outline">
-                            Ver Relatório
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
-            <Card className="p-12 text-center">
-              <CheckCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-600">Nenhuma auditoria realizada ainda</p>
-              <p className="text-slate-500 text-sm">Comece escaneando um site acima</p>
-            </Card>
+            <div className="border border-dashed border-border rounded-lg p-10 text-center">
+              <CheckCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="font-medium">Nenhuma auditoria ainda</p>
+              <p className="text-muted-foreground text-sm mt-1">Cole o endereço de um site acima para fazer a primeira análise.</p>
+            </div>
           )}
-        </div>
+        </section>
       </div>
     </DashboardLayout>
   );
