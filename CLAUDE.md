@@ -4,6 +4,10 @@ Scanner de conformidade (LGPD / ECA Digital) para sites. Frontend React + Vite,
 backend em funções serverless na Vercel (`api/`), tRPC, Drizzle, Stripe,
 login via GitHub OAuth. Fundador solo; responda em português.
 
+Decisões de arquitetura: `docs/adr/` (índice em `docs/adr/README.md`).
+Prioridades: `docs/ROADMAP.md`. Consulte os dois antes de propor mudanças;
+uma decisão nova ou revertida exige um ADR novo.
+
 ## Circuito de trabalho
 
 - **Luna (ChatGPT):** define critérios e fundamentação normativa; aprova ou
@@ -57,7 +61,8 @@ Nada vai para a `main` sem diff revisado e testes executados.
 | Decreto 12.880/2026 | vigente |
 | ANPD — Guia Orientativo Cookies e Proteção de Dados (2022) | orientativo, não vinculante |
 | ANPD — Guia de escopo e obrigações gerais do ECA Digital | minuta (circuito deliberativo 13–16/10/2026) |
-| ANPD — Guia de aferição de idade | minuta |
+| ANPD — orientações preliminares sobre aferição de idade (mar/2026) | orientação preliminar publicada |
+| ANPD — versão atualizada do guia de aferição de idade | minuta (tomada de subsídios) |
 
 Nunca apresente minuta como norma definitiva. O legítimo interesse pode
 fundamentar medição de audiência em certos contextos (Guia de Cookies): o
