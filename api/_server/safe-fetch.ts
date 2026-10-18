@@ -124,6 +124,7 @@ export function isPublicIp(address: string): boolean {
 export type SafeFetchErrorCode =
   | "BAD_URL"
   | "BAD_PROTOCOL"
+  | "BLOCKED_PORT"
   | "BLOCKED_ADDRESS"
   | "REDIRECT_LIMIT"
   | "BAD_REDIRECT"
@@ -229,8 +230,11 @@ export function createSafeLookup(resolveAll: ResolveAll = defaultResolveAll) {
 
 // ── Validacao de URL ────────────────────────────────────────────────────
 
+/** Unicas portas de destino permitidas (porta efetiva, apos aplicar o padrao do protocolo). */
+const ALLOWED_PORTS: ReadonlySet<number> = new Set([80, 443]);
+
 /**
- * Valida protocolo e, para IP literal, o endereco. Para nomes, a validacao
+ * Valida protocolo, porta efetiva e, para IP literal, o endereco. Para nomes, a validacao
  * acontece no `lookup` no momento da conexao.
  */
 export function assertPublicTarget(url: URL): void {
@@ -238,6 +242,14 @@ export function assertPublicTarget(url: URL): void {
     throw new SafeFetchError(
       "BAD_PROTOCOL",
       "Protocolo nao permitido. Use http:// ou https://",
+    );
+  }
+  // WHATWG URL deixa `port` vazio quando e o padrao do protocolo (http:80, https:443).
+  const port = url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80;
+  if (!ALLOWED_PORTS.has(port)) {
+    throw new SafeFetchError(
+      "BLOCKED_PORT",
+      "Porta de destino nao permitida. Use as portas 80 ou 443",
     );
   }
   const host = stripBrackets(url.hostname);

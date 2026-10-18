@@ -205,6 +205,100 @@ describe("assertPublicTarget — IP literal antes de qualquer conexao", () => {
   });
 });
 
+// ── Portas de destino ───────────────────────────────────────────────────
+
+describe("portas de destino (somente 80 e 443 efetivas)", () => {
+  const forbidden = [
+    "http://example.com:8080/",
+    "https://example.com:8443/",
+    "http://example.com:22/",
+    "https://example.com:22/",
+    "http://example.com:3306/",
+    "http://example.com:0/",
+    "http://example.com:65535/",
+    "http://93.184.216.34:8080/", // IP literal publico em porta proibida
+    "http://[2606:4700:4700::1111]:8080/",
+  ];
+  for (const u of forbidden) {
+    it(`rejeita ${u} antes de qualquer conexao`, async () => {
+      expect(() => assertPublicTarget(new URL(u))).toThrowError(
+        expect.objectContaining({ code: "BLOCKED_PORT" }),
+      );
+      const { fn, calls } = fakeRequest([{ body: "x" }]);
+      await expect(
+        safeFetchText(u, {
+          httpRequest: fn as any,
+          httpsRequest: fn as any,
+          resolveAll: resolveTo(PUBLIC_V4),
+        }),
+      ).rejects.toMatchObject({ code: "BLOCKED_PORT" });
+      expect(calls).toHaveLength(0);
+    });
+  }
+
+  const allowed: Array<[string, string]> = [
+    ["http://example.com/", "HTTP sem porta = 80"],
+    ["https://example.com/", "HTTPS sem porta = 443"],
+    ["http://example.com:80/", "HTTP com 80 explicito"],
+    ["https://example.com:443/", "HTTPS com 443 explicito"],
+    ["http://example.com:443/", "HTTP em 443 (porta efetiva permitida)"],
+    ["https://example.com:80/", "HTTPS em 80 (porta efetiva permitida)"],
+    ["http://93.184.216.34/", "IP literal publico em 80"],
+    ["https://[2606:4700:4700::1111]/", "IPv6 literal publico em 443"],
+  ];
+  for (const [u, why] of allowed) {
+    it(`aceita ${u} (${why})`, async () => {
+      expect(() => assertPublicTarget(new URL(u))).not.toThrow();
+      const { fn, calls } = fakeRequest([{ body: "ok" }]);
+      await expect(
+        safeFetchText(u, {
+          httpRequest: fn as any,
+          httpsRequest: fn as any,
+          resolveAll: resolveTo(PUBLIC_V4),
+        }),
+      ).resolves.toBe("ok");
+      expect(calls).toHaveLength(1);
+    });
+  }
+
+  it("redirect para porta proibida e rejeitado sem conectar ao destino", async () => {
+    for (const target of [
+      "http://example.com:8080/x",
+      "https://example.org:22/",
+      "//example.org:8443/x", // relativo ao protocolo
+    ]) {
+      const { fn, calls } = fakeRequest([
+        { status: 302, headers: { location: target } },
+        { body: "nao deveria chegar" },
+      ]);
+      await expect(
+        safeFetchText("https://example.com/", {
+          httpRequest: fn as any,
+          httpsRequest: fn as any,
+          resolveAll: resolveTo(PUBLIC_V4),
+        }),
+      ).rejects.toMatchObject({ code: "BLOCKED_PORT" });
+      expect(calls).toHaveLength(1);
+    }
+  });
+
+  it("redirect para destino com porta permitida segue normalmente", async () => {
+    const { fn, calls } = fakeRequest([
+      { status: 301, headers: { location: "https://example.com:443/novo" } },
+      { status: 302, headers: { location: "http://example.org:80/final" } },
+      { body: "final" },
+    ]);
+    const html = await safeFetchText("http://example.com/", {
+      httpRequest: fn as any,
+      httpsRequest: fn as any,
+      resolveAll: resolveTo(PUBLIC_V4),
+    });
+    expect(html).toBe("final");
+    expect(calls).toHaveLength(3);
+    expect(calls[2]!.options["hostname"]).toBe("example.org");
+  });
+});
+
 // ── Lookup seguro ───────────────────────────────────────────────────────
 
 describe("createSafeLookup", () => {
@@ -335,7 +429,7 @@ describe("safeFetchText", () => {
     for (const target of [
       "http://169.254.169.254/latest/meta-data/",
       "http://[::1]/",
-      "http://127.0.0.1:8080/",
+      "http://127.0.0.1/",
       "http://[::ffff:127.0.0.1]/",
     ]) {
       it(`bloqueia redirect de URL publica para ${target}`, async () => {
@@ -393,10 +487,12 @@ describe("safeFetchText", () => {
     });
 
     it("aborta por stream sem content-length e destroi a resposta", async () => {
+      // Corpo finito: 5 chunks de 400 B = 2000 B, ~1 KB acima de maxBytes (1000).
       let destroyed = false;
+      let sent = 0;
       const body = new Readable({
         read() {
-          this.push(Buffer.alloc(400, 97));
+          this.push(sent++ < 5 ? Buffer.alloc(400, 97) : null);
         },
         destroy(err, cb) {
           destroyed = true;
