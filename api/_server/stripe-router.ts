@@ -1,9 +1,9 @@
-import { protectedProcedure, router } from "./_core/trpc";
+import { protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import Stripe from "stripe";
-import { STRIPE_PRODUCTS } from "./stripe-products";
-import * as db from "./db";
-import { getOrigin } from "./_core/express5-compat";
+import { STRIPE_PRODUCTS } from "./stripe-products.js";
+import * as db from "./db.js";
+import { getOrigin } from "./_core/express5-compat.js";
 
 // Let Stripe use its bundled default API version
 const stripe = new Stripe(

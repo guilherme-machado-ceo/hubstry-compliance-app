@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scanHtmlForViolations } from "./scanner";
+import { scanHtmlForViolations } from "./scanner.js";
 
 describe("Scanner - Compliance Violations", () => {
   it("should detect autoplay videos", async () => {

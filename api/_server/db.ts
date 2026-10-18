@@ -1,8 +1,8 @@
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 // Import MySQL schema for TypeScript types (canonical type source)
-import type { Audit, InsertUser, User, Violation } from "../../drizzle/schema";
-import * as mysqlSchema from "../../drizzle/schema";
-import { ENV } from "./_core/env";
+import type { Audit, InsertUser, User, Violation } from "../../drizzle/schema.js";
+import * as mysqlSchema from "../../drizzle/schema.js";
+import { ENV } from "./_core/env.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDb = any;
@@ -48,7 +48,7 @@ async function initDb() {
 
       const client = createClient(clientOpts);
       _db = drizzle(client);
-      _schema = await import("../../drizzle/schema.sqlite");
+      _schema = await import("../../drizzle/schema.sqlite.js");
     } else {
       const { drizzle } = await import("drizzle-orm/mysql2");
       _db = drizzle(url);

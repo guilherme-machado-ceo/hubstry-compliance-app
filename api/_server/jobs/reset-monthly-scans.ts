@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { resetMonthlyScans, deleteOldAudits } from "../db";
+import { resetMonthlyScans, deleteOldAudits } from "../db.js";
 
 // Run on the 1st of each month at midnight UTC
 export function registerMonthlyResetJob(): void {

@@ -1,7 +1,7 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../_shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "../_shared/const.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import * as db from "../server/db";
-import { sdk } from "../server/_core/sdk";
+import * as db from "../_server/db.js";
+import { sdk } from "../_server/_core/sdk.js";
 
 export default async function handler(
   req: VercelRequest,

@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import { getHeader } from "./express5-compat";
+import { getHeader } from "./express5-compat.js";
 
 function isSecureRequest(req: Request) {
   const forwardedProto = getHeader(req, "x-forwarded-proto");
