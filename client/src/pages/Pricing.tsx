@@ -29,12 +29,12 @@ export default function Pricing() {
       price: "R$ 0",
       period: "para sempre",
       description: "Perfeito para começar",
-      scans: "5 scans/mês",
+      scans: "5 análises/mês",
       features: [
-        "5 scans por mês",
-        "Relatórios básicos",
+        "5 análises por mês",
+        "Todos os temas da análise",
         "Score de conformidade",
-        "Detecção de violações",
+        "Relatório com recomendações",
       ],
       cta: "Começar Agora",
       highlighted: false,
@@ -45,13 +45,12 @@ export default function Pricing() {
       price: "R$ 99",
       period: "por mês",
       description: "Para profissionais",
-      scans: "500 scans/mês",
+      scans: "500 análises/mês",
       features: [
-        "500 scans por mês",
-        "Relatórios detalhados",
-        "Exportação em PDF",
-        "Histórico 90 dias",
-        "Suporte por email",
+        "500 análises por mês",
+        "Todos os temas da análise",
+        "Suporte por e-mail",
+        "Exportação em PDF (em breve)",
       ],
       cta: "Upgrade para Pro",
       highlighted: true,
@@ -62,16 +61,12 @@ export default function Pricing() {
       price: "R$ 299",
       period: "por mês",
       description: "Para grandes equipes",
-      scans: "Scans ilimitados",
+      scans: "Análises ilimitadas",
       features: [
-        "Scans ilimitados",
-        "API access",
-        "Relatórios avançados",
-        "Exportação em PDF",
-        "Histórico ilimitado",
-        "Suporte prioritário",
-        "Webhooks customizados",
-        "SLA garantido",
+        "Análises ilimitadas",
+        "Todos os temas da análise",
+        "Suporte prioritário por e-mail",
+        "Exportação em PDF (em breve)",
       ],
       cta: "Upgrade para Enterprise",
       highlighted: false,
@@ -182,9 +177,10 @@ export default function Pricing() {
                 Posso cancelar minha subscrição a qualquer momento?
               </h3>
               <p className="text-slate-400">
-                Sim, você pode cancelar sua subscrição a qualquer momento sem
-                penalidades. Seu acesso continuará até o final do período de
-                faturamento.
+                Sim, sem multa. Enquanto o cancelamento direto pelo painel não
+                está disponível, peça pelo e-mail
+                guilhermemachado@hubstry.onmicrosoft.com. O acesso continua até
+                o fim do período já pago.
               </p>
             </div>
 
@@ -193,9 +189,8 @@ export default function Pricing() {
                 Qual é a diferença entre Pro e Enterprise?
               </h3>
               <p className="text-slate-400">
-                O plano Enterprise inclui acesso à API, webhooks customizados,
-                suporte prioritário e SLA garantido. Ideal para grandes
-                organizações com necessidades avançadas.
+                O Enterprise não tem limite mensal de análises e inclui suporte
+                prioritário por e-mail. Os dois planos usam a mesma análise.
               </p>
             </div>
 
@@ -204,8 +199,8 @@ export default function Pricing() {
                 Posso fazer upgrade ou downgrade de plano?
               </h3>
               <p className="text-slate-400">
-                Sim, você pode mudar de plano a qualquer momento. As alterações
-                serão refletidas no próximo ciclo de faturamento.
+                Sim. Para mudar de plano, fale conosco pelo e-mail
+                guilhermemachado@hubstry.onmicrosoft.com.
               </p>
             </div>
 
