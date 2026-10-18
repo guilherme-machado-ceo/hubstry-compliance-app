@@ -4,7 +4,7 @@ Atualizado em 2026-10-18. Mudanças de prioridade seguem o circuito do
 [ADR-0001](adr/0001-registrar-decisoes-em-adrs.md): Claude propõe, Luna
 revisa, Guilherme decide. Cada item vira um PR pequeno e independente.
 
-Os números `#12`–`#15` são pull requests reais já integradas. Rótulos como
+Os números `#12`–`#17` são pull requests reais já integradas. Rótulos como
 `PR-4` e `PR-5` são **identificadores internos de planejamento**; o número
 efetivo no GitHub só existe quando a pull request é aberta.
 
@@ -19,13 +19,13 @@ efetivo no GitHub só existe quando a pull request é aberta.
 | 2026-10-18 | `CLAUDE.md` com circuito, regras e decisões | PR #14 |
 | 2026-10-18 | Marca Hubstry, favicon e selo NVIDIA Inception | PR #15, ADR-0010 |
 | 2026-10-18 | Mitigações por configuração: `CRON_SECRET` criado; bypass neutralizado | ADR-0009 |
+| 2026-10-18 | PR-4 concluído: proteção SSRF no scanner (faixas IANA, DNS validado, redirects revalidados, portas 80/443, limites de prazo e tamanho). Validada por testes com DNS e sockets simulados; comportamento em runtime real depende de validação em preview | PR #17, ADR-0008 |
 
 ## Agora — segurança
 
 | Item | Escopo | Referência |
 |---|---|---|
-| PR-4 | Proteção SSRF no scanner (em andamento) | ADR-0008 |
-| PR-5 | Cron fail-closed + agendamento versionado + decisão de retenção. Até o agendamento ser implementado e validado, a retenção automática de 90 dias prometida no README **não está operacional** | ADR-0009, ADR-0011 |
+| PR-5 | Cron fail-closed + agendamento versionado: **implementado no código e coberto por testes com banco simulado; em validação** (branch `fix/cron-fail-closed`). Só passa a "implementado" depois de validado em preview e confirmado em produção. A retenção automática de 90 dias prometida no README **só é operacional depois** que o deploy com o cron ativo rodar e a execução for confirmada nos logs da Vercel. Escopo atual: apenas auditorias `completed` com mais de 90 dias. **Decisão pendente:** apagar também `failed`/`pending` | ADR-0009, ADR-0011 |
 
 ## A seguir — confiabilidade do motor e higiene
 
@@ -38,7 +38,7 @@ efetivo no GitHub só existe quando a pull request é aberta.
 | Testes e config | Aliases, cópias aninhadas no repo, teste de logout | — |
 | Limpeza do template | Remover analytics `analytics.manus.im` e outras sobras; arquivos `.ps1`/`.patch` soltos | decisão pendente |
 | Autenticação | Remover modo demo/bypass; proteger o `state` do OAuth | ADR-0009 |
-| Banco | Definir schema canônico; corrigir `insertId`; scan assíncrono confiável | decisão pendente |
+| Banco | Definir schema canônico; corrigir `insertId`; scan assíncrono confiável (`waitUntil`/persistência); isolamento do banco de preview | decisão pendente |
 
 ## Depois — validação e expansão
 
