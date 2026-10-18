@@ -31,6 +31,14 @@ export default function Dashboard() {
     },
   });
 
+  // Hooks precisam rodar antes de qualquer return condicional (React #310)
+  const hasPending = audits?.some((a) => a.status === "pending");
+  useEffect(() => {
+    if (!hasPending) return;
+    const interval = setInterval(() => refetch(), 3000);
+    return () => clearInterval(interval);
+  }, [hasPending, refetch]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -108,13 +116,6 @@ export default function Dashboard() {
       // handled by onError
     }
   };
-
-  const hasPending = audits?.some((a) => a.status === "pending");
-  useEffect(() => {
-    if (!hasPending) return;
-    const interval = setInterval(() => refetch(), 3000);
-    return () => clearInterval(interval);
-  }, [hasPending, refetch]);
 
   const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
 
