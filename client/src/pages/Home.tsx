@@ -48,22 +48,12 @@ const PLANS = [
 ];
 
 export default function Home() {
-  const { isAuthenticated, loading } = useAuth();
+  // A home é pública para todos. Usuário logado não é mais redirecionado:
+  // os botões levam ao painel em vez de pedir login de novo.
+  const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
 
-  if (loading) {
-    return (
-      <div className="hb-sans min-h-screen flex items-center justify-center" style={{ background: HB.ink, color: HB.muted }}>
-        Carregando…
-      </div>
-    );
-  }
-  if (isAuthenticated) {
-    navigate("/dashboard");
-    return null;
-  }
-
-  const login = () => (window.location.href = getLoginUrl());
+  const login = () => (isAuthenticated ? navigate("/dashboard") : (window.location.href = getLoginUrl()));
   const runPlan = (action: "login" | "pricing" | "contact") => {
     if (action === "login") return login();
     if (action === "pricing") return navigate("/pricing");
@@ -92,7 +82,7 @@ export default function Home() {
                 style={{ background: HB.cyan }}
                 onClick={login}
               >
-                Analisar meu site grátis
+                {isAuthenticated ? "Fazer uma análise" : "Analisar meu site grátis"}
               </button>
               <button className="hb-focus text-base underline underline-offset-4 hover:text-white" style={{ color: HB.muted }} onClick={() => navigate("/pricing")}>
                 Ver planos
