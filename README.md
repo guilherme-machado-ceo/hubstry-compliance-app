@@ -1,138 +1,85 @@
-# 🛡️ Hubstry Compliance
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="client/public/brand/hubstry-logo-light.png">
+    <img src="client/public/brand/hubstry-logo.png" alt="Hubstry" width="360">
+  </picture>
+</p>
 
-**Scanner de conformidade digital para a era da ECA Digital (Lei 15.211/2025)**
+<h1 align="center">Hubstry Compliance</h1>
 
-Desenvolvido por [Hubstry Deep Tech](https://hubstry.dev) — deep tech estratégica
-brasileira com foco em soberania tecnológica, IA simbólica e compliance digital.
-
----
-
-## Sobre a Hubstry
-
-A **Hubstry Deep Tech** é uma startup de tecnologia profunda fundada por
-Guilherme Gonçalves Machado, com sede no Rio de Janeiro. Desenvolvemos
-tecnologias proprietárias de alto impacto, posicionadas como ativos de
-soberania tecnológica nacional.
-
-Atuamos em três frentes:
-
-**B2B — Inovação Corporativa com Propósito**
-Empresas de tecnologia, educação e segurança contratam a Hubstry para desenvolver
-IA simbólica e interpretação semântica, criar soluções de interoperabilidade entre
-linguagens e sistemas, e formar equipes com pensamento interdisciplinar.
-
-**B2G — Soberania Tecnológica e Inovação Pública**
-Governos e instituições estratégicas contam com a Hubstry para desenvolver
-tecnologia nacional com identidade própria, fortalecer a educação técnica e
-acelerar a transformação digital com ética e profundidade.
-
-**P&D — Hub de Tecnologia Proprietária**
-Atuamos na antecipação de rotas tecnológicas em horizontes de 3 a 5 anos,
-reduzindo risco, custo e tempo no desenvolvimento de tecnologias emergentes
-antes que se tornem padrão de mercado.
-
-> A arquitetura original deste produto foi concebida por Guilherme Gonçalves
-> Machado e iterada com ferramentas de IA generativa (Claude, Claude Code,
-> entre outras). Todo o design estratégico, técnico e comercial é propriedade
-> intelectual da Hubstry Deep Tech.
+<p align="center">
+  Triagem automática de sites frente ao ECA Digital (Lei 15.211/2025) e à LGPD.<br>
+  <a href="https://hubstry-compliance-app.vercel.app">Abrir o app</a> ·
+  <a href="https://hubstry-compliance-app.vercel.app/sobre">Sobre a Hubstry</a>
+</p>
 
 ---
 
-## O Produto
+## O produto
 
-O Hubstry Compliance é um scanner SaaS que audita sites e aplicações digitais
-contra os 8 pilares da ECA Digital (Lei 15.211/2025), com prazo de conformidade
-obrigatória até janeiro de 2027 (ANPD).
+O Hubstry Compliance analisa o **HTML inicial retornado pelo servidor** de uma
+página pública e aponta sinais que merecem revisão, com uma recomendação para
+cada um. Conteúdo carregado depois por JavaScript não entra na análise.
 
-### Funcionalidades
+**É** uma triagem técnica automática e reproduzível, para mostrar onde vale
+olhar primeiro. **Não é** parecer jurídico: os achados indicam pontos para
+revisão humana, e a conformidade depende de contexto que nenhuma ferramenta
+automática enxerga sozinha.
 
-- Detecção de dark patterns (roach motel, misdirection, urgência falsa)
-- Detecção de autoplay, infinite scroll e rastreadores de anúncios
-- Verificação de políticas de privacidade e age verification
-- Score de conformidade por domínio auditado
-- Histórico completo de auditorias com detalhamento de violações
-- Relatórios exportáveis (plano Pro)
+### O que a análise cobre
+
+Padrões de design manipulativo, reprodução automática de mídia, rolagem
+infinita, rastreadores de publicidade, sinais de público infantojuvenil,
+política de privacidade, consentimento e controle de cookies, e acessibilidade
+básica.
+
+Essa é a organização própria do produto para a triagem, não uma lista oficial
+da lei. A revisão das regras do motor (níveis de evidência, redução de falsos
+positivos) está em andamento — ver o [roadmap](docs/ROADMAP.md).
 
 ### Planos
 
 | | Free | Pro | Enterprise |
 |---|---|---|---|
-| Scans/mês | 3 | Ilimitado | Ilimitado |
-| Relatório PDF | — | ✓ | ✓ |
-| Acesso API | — | — | ✓ |
-| Suporte | — | Email | Prioritário |
+| Preço | R$ 0 | R$ 99/mês | R$ 299/mês |
+| Análises por mês | 5 | 500 | ilimitadas |
+| Exportação em PDF | — | em breve | em breve |
+| Suporte | — | e-mail | prioritário por e-mail |
+
+Cancelamento e troca de plano: enquanto não há fluxo no painel, pelo e-mail
+guilhermemachado@hubstry.onmicrosoft.com.
 
 ---
 
-## Teste em 3 Passos (via Terminal)
+## Privacidade e dados
 
-### Pré-requisitos
+| Ponto | Situação |
+|---|---|
+| HTML das páginas analisadas | Processado em memória e descartado; não é armazenado. |
+| Retenção de auditorias concluídas (90 dias) | Código e agendamento implementados (cron diário, PR #18); operação em produção ainda em validação. Auditorias `failed`/`pending` não entram nessa regra (decisão pendente, [ADR-0011](docs/adr/0011-dados-de-auditoria-e-html.md)). |
+| Exclusão de dados pelo titular | Os endpoints existem (`audits.delete`, `gdpr.deleteAccount`), mas ainda não há interface no app. Até lá, a exclusão é atendida pelo e-mail acima. |
 
-- **Node.js 22+** — [nodejs.org](https://nodejs.org)
-- **pnpm 10+** — instale com: `npm install -g pnpm`
-- **Git** — [git-scm.com](https://git-scm.com)
-- **~1 GB** de espaço em disco
+---
 
-### Passo 1 — Clone o repositório
+## Rodando localmente
+
+Pré-requisitos: **Node.js 22+**, **pnpm 10+** (`npm install -g pnpm`) e **Git**.
 
 ```bash
 git clone https://github.com/guilherme-machado-ceo/hubstry-compliance-app.git
 cd hubstry-compliance-app
-```
-
-### Passo 2 — Instale e rode
-
-```bash
 pnpm install
-pnpm db:setup:dev
-pnpm dev
+pnpm db:setup:dev   # cria o banco SQLite local
+pnpm dev            # frontend (Vite) e backend (tRPC) em modo watch
 ```
 
-> O comando `pnpm db:setup:dev` cria o banco SQLite local automaticamente.
-> O comando `pnpm dev` sobe o frontend na porta **5173** e o backend na porta **3000**.
-> O modo dev usa autenticação bypassada (`BYPASS_AUTH=true`) — nenhum login necessário.
+Abra **http://localhost:5173**. Em desenvolvimento, a autenticação é
+dispensada (`BYPASS_AUTH=true` em `.env.development`).
 
-### Passo 3 — Abra no navegador
+Testes: `pnpm test`. A falha conhecida em `auth.logout.test.ts` é
+preexistente e está registrada no roadmap.
 
-Acesse **http://localhost:5173**
-
-Cole a URL do site que deseja auditar e clique em **"Escanear"**.
-A análise leva entre 5 e 30 segundos. O relatório aparece com:
-
-- **Score de conformidade** (0 a 100%)
-- **8 pilares da ECA Digital** avaliados individualmente
-- **Cada violação** com descrição clara e recomendação de correção
-
-> **Dica:** O plano Free permite 3 scans por mês. Scans reiniciam no dia 1º de cada mês.
-
----
-
-## Conformidade com a LGPD
-
-O Hubstry Compliance respeita integralmente a LGPD (Lei 13.709/2018):
-
-- **Sem retenção de HTML:** O conteúdo das páginas analisadas é processado em memória
-  e descartado após a análise. Nenhum código-fonte de terceiros é armazenado.
-- **Retenção automática:** Resultados de auditoria são excluídos automaticamente após
-  90 dias (job diário de retenção).
-- **Direito ao esquecimento:** O usuário pode excluir qualquer auditoria individual
-  ou solicitar a exclusão completa dos seus dados a qualquer momento (Art. 18, III, LGPD).
-- **Endpoint de exclusão:** `gdpr.deleteAccount` para exclusão completa dos dados.
-
----
-
-## Stack Tecnológico
-
-- **Frontend**: React 19 + Vite 5 + Tailwind CSS 4 + shadcn/ui
-- **Backend**: Express 5 + tRPC 11 + Drizzle ORM
-- **Banco de dados**: SQLite (desenvolvimento)
-- **Pagamentos**: Stripe
-- **Deploy**: Vercel
-- **Autenticação**: GitHub OAuth
-
----
-
-## Variáveis de ambiente
+### Variáveis de ambiente (desenvolvimento)
 
 Crie `.env.development` na raiz com:
 
@@ -150,23 +97,50 @@ APP_URL=http://localhost:5173
 VITE_API_URL=http://localhost:3001
 ```
 
-### Login real com GitHub OAuth (opcional)
+Para testar o login real com GitHub OAuth, consulte
+[docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
 
-Para testar o fluxo de autenticação completo,
-consulte [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
+---
+
+## Arquitetura e decisões
+
+- **Stack:** React 19, Vite, Tailwind CSS 4 e shadcn/ui no frontend; tRPC 11
+  e Drizzle ORM no backend, em funções serverless na Vercel; banco
+  Turso/libsql em produção e SQLite em desenvolvimento; Stripe; login com
+  GitHub OAuth.
+- **Decisões de arquitetura:** [`docs/adr/`](docs/adr/README.md).
+- **Prioridades:** [`docs/ROADMAP.md`](docs/ROADMAP.md).
+- **Regras para agentes de código:** [`CLAUDE.md`](CLAUDE.md).
+
+---
+
+## Sobre a Hubstry
+
+A Hubstry é um operating deep tech venture builder focado em pesquisa,
+desenvolvimento e criação de ativos tecnológicos proprietários. Em síntese,
+transforma incerteza tecnológica em vantagem competitiva estruturada e de
+longo prazo. O posicionamento completo e o manifesto estão em
+[hubstry-compliance-app.vercel.app/sobre](https://hubstry-compliance-app.vercel.app/sobre).
+
+<p>
+  <img src="client/public/brand/nvidia-inception-program-badge-rgb-for-screen.svg"
+       alt="Membro do NVIDIA Inception Program" width="180">
+</p>
+
+> A arquitetura original deste produto foi concebida por Guilherme Gonçalves
+> Machado e iterada com ferramentas de IA generativa (Claude, Claude Code,
+> entre outras). Todo o design estratégico, técnico e comercial é propriedade
+> intelectual da Hubstry Deep Tech.
 
 ---
 
 ## Licença
 
-Este software é distribuído sob a **Elastic License 2.0 (ELv2)**.
+Distribuído sob a **Elastic License 2.0 (ELv2)**. Uso pessoal, avaliação e
+contribuições são permitidos. É **proibido** oferecer este software como
+serviço gerenciado (SaaS) sem autorização expressa da Hubstry.
 
-Uso pessoal, avaliação e contribuições são permitidos. É **proibido** oferecer
-este software como serviço gerenciado (SaaS) sem autorização expressa da Hubstry.
-
-Para licenciamento comercial, parcerias ou uso enterprise:
-📧 guilhermemachado@hubstry.onmicrosoft.com
-
----
+Licenciamento comercial, parcerias ou uso enterprise:
+guilhermemachado@hubstry.onmicrosoft.com
 
 © 2026 Hubstry Deep Tech · Guilherme Gonçalves Machado · Rio de Janeiro, Brasil

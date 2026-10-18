@@ -13,7 +13,8 @@ NVIDIA Inception, com uso do selo aprovado conforme as diretrizes da NVIDIA.
   escuros; favicon oficial.
 - Selo NVIDIA Inception: arquivo oficial (SVG RGB "for screen") sem
   nenhuma alteração, apenas no rodapé das **páginas institucionais**
-  (landing e `/sobre`), dentro das diretrizes aplicáveis da NVIDIA.
+  (landing e `/sobre`) e na seção institucional do README, dentro das
+  diretrizes aplicáveis da NVIDIA.
   *(Atualizado em 2026-10-18: antes, apenas no rodapé da landing.)*
 - O selo nunca aparece em telas de auditoria nem perto de scores, para não
   sugerir endosso da NVIDIA aos relatórios.
