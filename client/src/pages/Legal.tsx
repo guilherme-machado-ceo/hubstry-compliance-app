@@ -72,13 +72,13 @@ export function Termos() {
       </section>
 
       <section>
-        <h2>3. Beta gratuito</h2>
+        <h2>3. Serviço gratuito</h2>
         <ul>
-          <li>O serviço está em fase beta e é oferecido gratuitamente, com um limite mensal de análises por conta, informado no painel.</li>
-          <li>Funcionalidades, limites e disponibilidade podem mudar durante o beta. Não há garantia de nível de serviço.</li>
+          <li>O serviço é gratuito, com um limite mensal de análises por conta, informado no painel.</li>
+          <li>Funcionalidades, limites e disponibilidade podem mudar. Não há garantia de nível de serviço.</li>
           <li>
-            Não pedimos cartão de crédito. Nenhuma cobrança acontece sem que você contrate um plano pago de forma
-            expressa. Planos pagos, se houver, serão anunciados com antecedência e terão termos próprios.
+            Não há planos pagos nem cobrança, e não pedimos cartão de crédito. Se isso mudar, avisaremos com
+            antecedência, e nada será cobrado sem contratação expressa.
           </li>
         </ul>
       </section>
@@ -106,7 +106,7 @@ export function Termos() {
       <section>
         <h2>6. Limitação de responsabilidade</h2>
         <p>
-          O serviço é fornecido como está, em fase beta. Na medida permitida pela lei, a Hubstry não responde por
+          O serviço é fornecido como está, gratuitamente. Na medida permitida pela lei, a Hubstry não responde por
           decisões tomadas com base exclusiva nos resultados da triagem. [CONFIRMAR: redação desta cláusula na
           revisão jurídica.]
         </p>
@@ -192,11 +192,8 @@ export function Privacidade() {
           <li><strong>Vercel</strong>: hospedagem do site e das funções do serviço.</li>
           <li><strong>Turso</strong>: banco de dados. [CONFIRMAR: região de armazenamento.]</li>
           <li><strong>GitHub</strong>: autenticação no login.</li>
-          <li>
-            <strong>Stripe</strong>: processamento de pagamentos, apenas se planos pagos forem reativados. Durante o
-            beta não há pagamentos.
-          </li>
         </ul>
+        <p>O serviço é gratuito e não processa pagamentos; nenhum dado é enviado a processadores de pagamento.</p>
         <p>
           Alguns desses fornecedores processam dados fora do Brasil. [CONFIRMAR: mecanismo de transferência
           internacional aplicável (art. 33 da LGPD).]
