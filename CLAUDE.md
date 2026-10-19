@@ -95,18 +95,23 @@ scanner não decide base legal. Atualize esta tabela quando o status mudar.
 
 ## Roadmap aprovado (ordem)
 
-1. **PR-4** — SSRF no scanner (`assertSafeUrl` e fetch): faixas IANA, IPs
-   literais, todos os A/AAAA validados, conexão fixada em IP validado,
-   redirects revalidados, timeout até o fim do corpo, limite de tamanho.
-2. **PR-5** — cron fail-closed + agendamento versionado em `vercel.json`,
-   testes com banco simulado.
-3. Motor: base (helpers, `ruleId`/`evidenceLevel`, fontes, score) → três
-   regras revisadas (idade, consentimento, GTM) → demais regras.
-4. Base local de 30–50 sites reais rotulados (origem, data, hash do HTML,
-   rótulo por regra), separada das fixtures sintéticas; `scanner:baseline`
-   com métricas separadas.
-5. Experimento de IA fora do produto: Nemotron no Amazon Bedrock via
-   `scripts/ai-eval.ts`, comparado a rótulos humanos. Vertex AI só depois.
+A ordem vigente está em `docs/ROADMAP.md` e no ADR-0012 (fase de beta
+gratuito, 19/10/2026). Em caso de divergência, valem esses dois documentos.
+
+- **Fase beta gratuito (ADR-0012):** cobrança adiada; Vercel Pro fora do
+  caminho crítico; Stripe preservado (não apagar código, segredos nem
+  configurações). Ordem: (1) confiabilidade do scan; (2) modo beta, com cota
+  finita e checkout bloqueado também no servidor; (3) termos de uso,
+  política de privacidade e exclusão de conta, com revisão jurídica;
+  (4) decisão de hospedagem.
+- **Portão do beta externo:** não abrir nem divulgar o beta a usuários
+  externos até haver confirmação escrita da Vercel sobre o plano Hobby ou
+  outra hospedagem decidida. Até lá, acesso externo só em testes
+  controlados. Não migrar de hospedagem sem decisão do Guilherme.
+- **Depois:** motor (base, três regras revisadas, demais regras); base local
+  de 30–50 sites reais rotulados, separada das fixtures sintéticas;
+  experimento de IA fora do produto (ADR-0007).
+- PR-4 (SSRF) e PR-5 (cron fail-closed) já foram integrados (PR #17 e #18).
 
 ## Formato de entrega
 
