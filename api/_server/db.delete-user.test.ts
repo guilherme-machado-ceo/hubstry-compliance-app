@@ -1,10 +1,17 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
- * Exclusão de conta (art. 18 da LGPD) contra um SQLite EM MEMÓRIA: banco
- * efêmero, local, sem rede e sem dados reais. Valida o SQL de verdade, o que
- * um mock da camada Drizzle não faria.
+ * Exclusão de conta (art. 18 da LGPD) contra um SQLite em ARQUIVO TEMPORÁRIO:
+ * banco efêmero, local, sem rede e sem dados reais, apagado ao final. Valida o
+ * SQL e a transação de verdade, o que um mock da camada Drizzle não faria.
+ * (Não usa `:memory:` porque o cliente libsql abre outra conexão para a
+ * transação, e cada conexão em memória é um banco vazio diferente.)
  */
+
+const tmpDir = mkdtempSync(join(tmpdir(), "hubstry-delete-user-"));
 
 type DbModule = typeof import("./db.js");
 let db: DbModule;
@@ -31,7 +38,7 @@ async function count(table: string, where: string) {
 }
 
 beforeAll(async () => {
-  vi.stubEnv("DATABASE_URL", "file::memory:");
+  vi.stubEnv("DATABASE_URL", `file:${join(tmpDir, "teste.db")}`);
   vi.stubEnv("DATABASE_PROVIDER", "sqlite");
   vi.resetModules();
   db = await import("./db.js");
@@ -62,6 +69,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   vi.unstubAllEnvs();
+  rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe("deleteUserData", () => {
@@ -83,5 +91,36 @@ describe("deleteUserData", () => {
     expect(await count("audits", "userId = 2")).toBe(1);
     expect(await count("violations", "auditId = 20")).toBe(1);
     expect(await count("reports", "userId = 2")).toBe(1);
+  });
+});
+
+describe("deleteUserData — falha no meio da operação", () => {
+  it("desfaz tudo: nenhum dado do usuário é apagado parcialmente", async () => {
+    const now = Date.now();
+    await conn.run(
+      `INSERT INTO users (id, openId, name, email, createdAt, updatedAt, lastSignedIn)
+       VALUES (3, 'gh-falha', 'Nome 3', 'u3@example.com', ${now}, ${now}, ${now})`,
+    );
+    await conn.run(`INSERT INTO subscriptions (userId) VALUES (3)`);
+    await conn.run(`INSERT INTO audits (id, userId, url, domain) VALUES (30, 3, 'https://x', 'x')`);
+    await conn.run(
+      `INSERT INTO violations (auditId, type, severity, title, description, recommendation)
+       VALUES (30, 'other', 'info', 't', 'd', 'r')`,
+    );
+    await conn.run(`INSERT INTO reports (auditId, userId) VALUES (30, 3)`);
+    // Falha simulada na etapa da assinatura, depois de auditorias, achados e
+    // relatórios já terem sido apagados dentro da transação.
+    await conn.run(`CREATE TRIGGER falha_simulada BEFORE DELETE ON subscriptions WHEN OLD.userId = 3
+      BEGIN SELECT RAISE(ABORT, 'falha simulada'); END`);
+
+    await expect(db.deleteUserData(3)).rejects.toThrow();
+
+    expect(await count("users", "id = 3")).toBe(1);
+    expect(await count("subscriptions", "userId = 3")).toBe(1);
+    expect(await count("audits", "userId = 3")).toBe(1);
+    expect(await count("violations", "auditId = 30")).toBe(1);
+    expect(await count("reports", "userId = 3")).toBe(1);
+
+    await conn.run(`DROP TRIGGER falha_simulada`);
   });
 });
