@@ -14,7 +14,10 @@ import { scanUrl, type ScanResult } from "./scanner.js";
  * - As transicoes finais (`completed`/`failed`) so valem a partir de
  *   `pending` (db.updateAuditIfPending): a primeira gravada prevalece e uma
  *   escrita atrasada nao sobrescreve o estado final.
- * - O resultado devolvido e o estado lido do banco depois da execucao.
+ * - O resultado devolvido e o estado lido do banco depois da execucao. Se
+ *   essa leitura falhar, o resultado e `pending` (nao confirmado): nao afirma
+ *   conclusao nem falha, nao conta a cota e nao apaga achados; a interface
+ *   continua consultando o status.
  * - Apos o prazo, nenhuma nova escrita comeca.
  * - Auditoria que termina `failed` tem os achados parciais removidos (melhor
  *   esforco); a leitura so expoe achados de auditorias `completed`.
@@ -69,7 +72,8 @@ class AuditTimeoutError extends Error {
   }
 }
 
-export type AuditOutcome = "completed" | "failed";
+/** `pending` = estado final nao confirmado (leitura do banco falhou). */
+export type AuditOutcome = "completed" | "failed" | "pending";
 
 export async function runAudit(
   params: { auditId: number; userId: number; url: string },
@@ -118,10 +122,8 @@ export async function runAudit(
     }, deadlineMs);
   });
 
-  let workSucceeded = false;
   try {
     await Promise.race([work, timeout]);
-    workSucceeded = true;
   } catch (error) {
     try {
       await deps.updateAuditIfPending(auditId, {
@@ -143,8 +145,10 @@ export async function runAudit(
   try {
     finalStatus = (await deps.getAuditById(auditId))?.status;
   } catch (error) {
+    // Sem confirmacao, nao se afirma conclusao nem falha: nada de contar a
+    // cota nem de apagar achados que podem ser de uma auditoria concluida.
     console.error(`[audit ${auditId}] falha ao ler o estado final:`, error);
-    finalStatus = workSucceeded ? "completed" : "failed";
+    return "pending";
   }
 
   if (finalStatus === "completed") {

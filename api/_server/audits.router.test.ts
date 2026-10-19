@@ -75,6 +75,21 @@ describe("audits.create", () => {
     });
   });
 
+  it("estado final não confirmado (leitura falha) devolve `pending`, sem contar a cota", async () => {
+    vi.mocked(scanUrl).mockResolvedValue({
+      complianceScore: 100,
+      summary: { critical: 0, warning: 0, info: 0 },
+      violations: [],
+    });
+    vi.mocked(db.getAuditById).mockRejectedValue(new Error("banco indisponível"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await caller().audits.create({ url: "https://example.com/" });
+
+    expect(result).toEqual({ auditId: 42, status: "pending" });
+    expect(db.incrementScansUsed).not.toHaveBeenCalled();
+  });
+
   it("sem id da auditoria criada, responde erro e não escaneia", async () => {
     vi.mocked(db.createAudit).mockResolvedValue({} as never);
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toThrow(

@@ -175,11 +175,21 @@ describe("runAudit — falha", () => {
     expect(f.row["errorMessage"]).toBe("Erro desconhecido");
   });
 
-  it("se a leitura do estado final falhar, devolve o resultado do próprio caminho", async () => {
-    const ok = makeFake({ failRead: true });
-    await expect(runAudit(PARAMS, ok.deps)).resolves.toBe("completed");
-    const ko = makeFake({ failRead: true, scan: () => Promise.reject(new Error("x")) });
-    await expect(runAudit(PARAMS, ko.deps)).resolves.toBe("failed");
+  it("leitura do estado final falha após sucesso: não afirma conclusão nem conta a cota", async () => {
+    const f = makeFake({ failRead: true });
+    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("pending");
+    expect(f.row["status"]).toBe("completed"); // gravado, mas não confirmado
+    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
+    expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("leitura do estado final falha após erro: não afirma falha nem apaga achados", async () => {
+    const f = makeFake({ failRead: true, scan: () => Promise.reject(new Error("x")) });
+    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("pending");
+    expect(f.row["status"]).toBe("failed");
+    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
+    expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
   });
 });
 

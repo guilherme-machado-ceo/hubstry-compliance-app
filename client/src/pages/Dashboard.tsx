@@ -109,7 +109,8 @@ export default function Dashboard() {
 
     try {
       const result = await createAudit.mutateAsync({ url: currentUrl });
-      // O servidor já devolve o estado final; o polling fica como reserva.
+      // O servidor devolve o estado final; se ele não pôde ser confirmado
+      // (`pending`), o polling consulta o status até a confirmação.
       if (result.status === "completed") {
         setIsScanning(false);
         setScanningUrl("");
