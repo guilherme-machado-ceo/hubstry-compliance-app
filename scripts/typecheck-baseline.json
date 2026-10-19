@@ -1,0 +1,38 @@
+{
+  "tsconfig.json": {
+    "api/_server/_core/dev-server.ts TS4111": 2,
+    "api/_server/_core/index.ts TS4111": 2,
+    "api/_server/_core/vite.ts TS2307": 1,
+    "api/_server/_core/vite.ts TS4111": 1,
+    "api/_server/seed.ts TS4111": 1,
+    "api/_server/seed.ts TS18048": 1,
+    "api/_server/stripe-webhook.ts TS4111": 4,
+    "api/_server/stripe-webhook.ts TS2322": 1,
+    "api/_server/stripe-webhook.ts TS7030": 1,
+    "api/_shared/types.ts TS2307": 1,
+    "client/src/components/DevBanner.tsx TS4111": 1,
+    "client/src/components/ErrorBoundary.tsx TS4114": 1,
+    "client/src/components/Map.tsx TS2688": 1,
+    "client/src/components/Map.tsx TS2304": 1,
+    "client/src/components/Map.tsx TS4111": 2,
+    "client/src/components/Map.tsx TS2503": 3,
+    "client/src/components/ui/calendar.tsx TS4111": 9,
+    "client/src/components/ui/resizable.tsx TS2339": 5,
+    "client/src/main.tsx TS4111": 1,
+    "client/src/pages/AuditDetail.tsx TS6133": 3,
+    "client/src/pages/ComponentShowcase.tsx TS6133": 2,
+    "client/src/pages/ComponentShowcase.tsx TS2345": 2,
+    "client/src/pages/Dashboard.tsx TS6133": 2,
+    "client/src/pages/Dashboard.tsx TS7053": 1,
+    "client/src/pages/Pricing.tsx TS6133": 1,
+    "drizzle.config.ts TS4111": 1,
+    "drizzle.sqlite.config.ts TS4111": 1,
+    "tailwind.config.ts TS2322": 1,
+    "vitest.config.ts TS2769": 1,
+    "vitest.setup.ts TS6133": 1
+  },
+  "tsconfig.server.json": {
+    "api/_server/_core/vite.ts TS2307": 1,
+    "api/_shared/types.ts TS2307": 1
+  }
+}
