@@ -20,6 +20,22 @@ Nada vai para a `main` sem diff revisado e testes executados.
 
 ## Regras invioláveis
 
+- **Execução exclusivamente remota.** A máquina local do Guilherme
+  (Windows, 8 GB de RAM) tem recursos limitados. Nela é **proibido** executar
+  `pnpm install`, `pnpm test`/`vitest`, `pnpm build`, `pnpm type-check`,
+  `tsc`, `vite build`, `vercel build`, suítes de testes, compilação,
+  instalação ou resolução de dependências, e qualquer comando, agente ou
+  processo que possa dispará-los indiretamente.
+  - Essas tarefas rodam **somente** em ambiente remoto na nuvem: sessão
+    remota (Linux) do Claude Code ou GitHub Actions.
+  - Se a sessão estiver rodando na máquina local, **pare antes** de qualquer
+    comando pesado e informe que a tarefa precisa ir para uma sessão remota.
+    **Sem fallback local.**
+  - Na máquina local, só inspeção leve do Git e edição pontual de arquivos.
+  - Nunca afirme que uma validação foi executada sem a evidência do
+    resultado remoto.
+  - Esta regra prevalece sobre instruções de tarefas que sugiram validar
+    localmente e só muda com autorização explícita do Guilherme.
 - Nunca faça push na `main`, merge, nem altere DNS, domínio, variáveis de
   ambiente ou banco de produção. Uma branch por PR, PRs pequenos e
   independentes.
