@@ -109,6 +109,20 @@ export default function Dashboard() {
 
     try {
       const result = await createAudit.mutateAsync({ url: currentUrl });
+      // O servidor já devolve o estado final; o polling fica como reserva.
+      if (result.status === "completed") {
+        setIsScanning(false);
+        setScanningUrl("");
+        navigate(`/audit/${result.auditId}`);
+        return;
+      }
+      if (result.status === "failed") {
+        setIsScanning(false);
+        setScanningUrl("");
+        refetch();
+        toast.error("Análise falhou. Tente novamente.");
+        return;
+      }
       setScanningAuditId(result.auditId);
       refetch();
       void pollStatus(result.auditId);

@@ -7,8 +7,17 @@ import { systemRouter } from "./_core/systemRouter.js";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import * as db from "./db.js";
-import { scanUrl } from "./scanner.js";
+import { runAudit, STALE_MESSAGE, STALE_PENDING_MS } from "./audit-runner.js";
 import { stripeRouter } from "./stripe-router.js";
+
+/** Fecha auditorias `pending` sem execucao viva antes de lê-las. */
+async function closeStalePending(userId: number) {
+  await db.failStalePendingAudits(
+    userId,
+    new Date(Date.now() - STALE_PENDING_MS),
+    STALE_MESSAGE,
+  );
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -36,6 +45,7 @@ export const appRouter = router({
 
   audits: router({
     list: protectedProcedure.query(async ({ ctx }) => {
+      await closeStalePending(ctx.user.id);
       return db.getUserAudits(ctx.user.id);
     }),
 
@@ -72,63 +82,28 @@ export const appRouter = router({
           | number
           | undefined;
 
-        // Scan URL asynchronously — increment counter only on success
-        scanUrl(input.url)
-          .then(async (scanResult) => {
-            if (auditId === undefined) return;
-
-            await db.incrementScansUsed(ctx.user.id);
-
-            // Store violations
-            for (const violation of scanResult.violations) {
-              const violationType = violation.type as
-                | "dark_pattern"
-                | "autoplay"
-                | "infinite_scroll"
-                | "ad_tracker"
-                | "lootbox"
-                | "missing_privacy_policy"
-                | "data_collection"
-                | "age_verification"
-                | "other";
-              await db.createViolation(auditId, {
-                type: violationType,
-                severity: violation.severity,
-                title: violation.title,
-                description: violation.description,
-                recommendation: violation.recommendation,
-                elementSelector: violation.elementSelector ?? null,
-                lineNumber: null,
-              });
-            }
-
-            // Update audit with results
-            await db.updateAudit(auditId, {
-              status: "completed",
-              complianceScore: scanResult.complianceScore,
-              totalViolations: scanResult.violations.length,
-              criticalViolations: scanResult.summary.critical,
-              warningViolations: scanResult.summary.warning,
-              infoViolations: scanResult.summary.info,
-            });
-          })
-          .catch(async (error) => {
-            if (auditId === undefined) return;
-            await db.updateAudit(auditId, {
-              status: "failed",
-              errorMessage:
-                error instanceof Error
-                  ? error.message
-                  : "Erro desconhecido",
-            });
+        if (auditId === undefined) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Não foi possível registrar a auditoria. Tente novamente.",
           });
+        }
 
-        return { auditId, status: "pending" };
+        // Scan e gravacao terminam antes da resposta, com prazo total
+        // (audit-runner.ts). O resultado nunca fica em `pending`.
+        const status = await runAudit({
+          auditId,
+          userId: ctx.user.id,
+          url: input.url,
+        });
+
+        return { auditId, status };
       }),
 
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
+        await closeStalePending(ctx.user.id);
         const audit = await db.getAuditById(input.id);
         if (!audit || audit.userId !== ctx.user.id) {
           throw new Error("Auditoria nao encontrada");
@@ -154,6 +129,7 @@ export const appRouter = router({
     status: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
+        await closeStalePending(ctx.user.id);
         const audit = await db.getAuditById(input.id);
         if (!audit || audit.userId !== ctx.user.id) {
           throw new Error("Auditoria nao encontrada");

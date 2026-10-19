@@ -304,6 +304,32 @@ export async function updateAudit(
   await db.update(audits).set(updates).where(eq(audits.id, auditId));
 }
 
+/**
+ * Marca como `failed` as auditorias `pending` do usuario criadas antes de
+ * `olderThan`: nao ha mais execucao viva para elas (processo encerrado pela
+ * plataforma ou banco indisponivel ao registrar a falha).
+ */
+export async function failStalePendingAudits(
+  userId: number,
+  olderThan: Date,
+  errorMessage: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits } = _schema;
+  await db
+    .update(audits)
+    .set({ status: "failed", errorMessage })
+    .where(
+      and(
+        eq(audits.userId, userId),
+        eq(audits.status, "pending"),
+        lt(audits.createdAt, olderThan),
+      ),
+    );
+}
+
 export async function createViolation(
   auditId: number,
   violation: Omit<Violation, "id" | "auditId" | "createdAt">,
