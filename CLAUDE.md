@@ -47,8 +47,9 @@ Nada vai para a `main` sem diff revisado e testes executados.
 - Não exponha valores de secrets em código, logs ou relatórios.
 - Diferencie sempre o que foi **verificado** (rodou comando, leu arquivo) do
   que é **hipótese**. Não declare sucesso sem evidência.
-- A falha de `api/_server/auth.logout.test.ts` é preexistente e tratada à
-  parte; não a misture com outras mudanças.
+- A suíte de testes completa é obrigatória no CI, sem exclusões nem etapas
+  não bloqueantes. Teste que falha bloqueia o merge; não o enfraqueça nem o
+  isole para obter verde.
 
 ## Motor de scan (`api/_server/scanner.ts`) — princípios
 
