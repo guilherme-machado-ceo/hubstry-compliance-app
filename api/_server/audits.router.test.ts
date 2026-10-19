@@ -55,6 +55,8 @@ describe("audits.create", () => {
 
     vi.mocked(db.getAuditById).mockResolvedValue({ id: 42, userId: 7, status: "completed" } as never);
 
+    vi.mocked(db.updateAuditIfPending).mockResolvedValue(true);
+
     const result = await caller().audits.create({ url: "https://example.com/" });
 
     expect(result).toEqual({ auditId: 42, status: "completed" });
@@ -64,7 +66,7 @@ describe("audits.create", () => {
 
   it("falha do scan devolve `failed` já gravado, nunca `pending`", async () => {
     vi.mocked(scanUrl).mockRejectedValue(new Error("Tempo limite excedido ao buscar a pagina"));
-    vi.mocked(db.getAuditById).mockResolvedValue({ id: 42, userId: 7, status: "failed" } as never);
+    vi.mocked(db.updateAuditIfPending).mockResolvedValue(true);
 
     const result = await caller().audits.create({ url: "https://example.com/" });
 
@@ -75,12 +77,13 @@ describe("audits.create", () => {
     });
   });
 
-  it("estado final não confirmado (leitura falha) devolve `pending`, sem contar a cota", async () => {
+  it("estado final não confirmado (gravação e leitura falham) devolve `pending`, sem contar a cota", async () => {
     vi.mocked(scanUrl).mockResolvedValue({
       complianceScore: 100,
       summary: { critical: 0, warning: 0, info: 0 },
       violations: [],
     });
+    vi.mocked(db.updateAuditIfPending).mockRejectedValue(new Error("banco indisponível"));
     vi.mocked(db.getAuditById).mockRejectedValue(new Error("banco indisponível"));
     vi.spyOn(console, "error").mockImplementation(() => {});
 

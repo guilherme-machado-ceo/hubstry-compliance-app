@@ -308,19 +308,34 @@ export async function updateAudit(
  * Atualiza a auditoria somente se ela ainda estiver `pending`. Usado nas
  * transicoes finais (`completed`/`failed`): a primeira a ser gravada vale, e
  * uma escrita atrasada nao sobrescreve o estado final (audit-runner.ts).
+ * Devolve true se esta chamada aplicou a transicao (linha afetada).
  */
 export async function updateAuditIfPending(
   auditId: number,
   updates: Record<string, unknown>,
-): Promise<void> {
+): Promise<boolean> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const { audits } = _schema;
-  await db
+  const result = await db
     .update(audits)
     .set(updates)
     .where(and(eq(audits.id, auditId), eq(audits.status, "pending")));
+  return affectedRows(result) > 0;
+}
+
+/**
+ * Linhas afetadas por um UPDATE/DELETE nos dois provedores: libsql devolve
+ * `{ rowsAffected }`; mysql2 devolve `[ResultSetHeader { affectedRows }, ...]`.
+ */
+function affectedRows(result: unknown): number {
+  const header = Array.isArray(result) ? result[0] : result;
+  const value =
+    (header as { rowsAffected?: number; affectedRows?: number } | undefined)
+      ?.rowsAffected ??
+    (header as { affectedRows?: number } | undefined)?.affectedRows;
+  return Number(value ?? 0);
 }
 
 /** Remove os achados de uma auditoria (ex.: gravados antes de uma falha). */

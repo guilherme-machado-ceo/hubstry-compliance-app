@@ -6,19 +6,20 @@ import { scanUrl, type ScanResult } from "./scanner.js";
  *
  * Prazo total de SCAN_DEADLINE_MS para a operacao inteira: busca da pagina,
  * analise e gravacao dos resultados. O timer NAO interrompe codigo sincrono
- * em execucao (a analise do JSDOM bloqueia o event loop); ele garante um
- * estado final consistente, nao um corte rigido. O teto absoluto continua
- * sendo o maxDuration da funcao (api/trpc/[trpc].ts).
+ * em execucao (a analise do JSDOM bloqueia o event loop); por isso, antes de
+ * cada escrita, o prazo tambem e conferido pelo relogio, e nenhuma escrita
+ * comeca depois dele, mesmo que o timer ainda nao tenha disparado. Isso
+ * garante estado final consistente, nao corte rigido; o teto absoluto
+ * continua sendo o maxDuration da funcao (api/trpc/[trpc].ts).
  *
  * Garantias:
  * - As transicoes finais (`completed`/`failed`) so valem a partir de
  *   `pending` (db.updateAuditIfPending): a primeira gravada prevalece e uma
  *   escrita atrasada nao sobrescreve o estado final.
- * - O resultado devolvido e o estado lido do banco depois da execucao. Se
- *   essa leitura falhar, o resultado e `pending` (nao confirmado): nao afirma
- *   conclusao nem falha, nao conta a cota e nao apaga achados; a interface
- *   continua consultando o status.
- * - Apos o prazo, nenhuma nova escrita comeca.
+ * - O resultado e a contagem da cota se baseiam em estado CONFIRMADO: a
+ *   propria transicao aplicada (linha afetada) ou, se nenhuma foi confirmada,
+ *   a leitura do banco. Sem confirmacao, o resultado e `pending`: nao afirma
+ *   conclusao nem falha, nao conta a cota e nao apaga achados.
  * - Auditoria que termina `failed` tem os achados parciais removidos (melhor
  *   esforco); a leitura so expoe achados de auditorias `completed`.
  * - O que escapar disso (funcao encerrada pela plataforma, banco indisponivel)
@@ -72,7 +73,7 @@ class AuditTimeoutError extends Error {
   }
 }
 
-/** `pending` = estado final nao confirmado (leitura do banco falhou). */
+/** `pending` = estado final nao confirmado. */
 export type AuditOutcome = "completed" | "failed" | "pending";
 
 export async function runAudit(
@@ -81,12 +82,18 @@ export async function runAudit(
   deadlineMs: number = SCAN_DEADLINE_MS,
 ): Promise<AuditOutcome> {
   const { auditId, userId, url } = params;
-  // Depois do prazo, a execucao em andamento para antes da proxima escrita.
+  const deadlineAt = Date.now() + deadlineMs;
+  // Depois do prazo, nenhuma escrita comeca. O relogio cobre o caso em que
+  // codigo sincrono atrasou o disparo do timer.
   let expired = false;
   const ensureTime = () => {
-    if (expired) throw new AuditTimeoutError();
+    if (expired || Date.now() >= deadlineAt) {
+      expired = true;
+      throw new AuditTimeoutError();
+    }
   };
 
+  let completedApplied = false;
   const work = (async () => {
     const result = await deps.scanUrl(url);
     for (const violation of result.violations) {
@@ -102,7 +109,7 @@ export async function runAudit(
       });
     }
     ensureTime();
-    await deps.updateAuditIfPending(auditId, {
+    completedApplied = await deps.updateAuditIfPending(auditId, {
       status: "completed",
       complianceScore: result.complianceScore,
       totalViolations: result.violations.length,
@@ -122,11 +129,12 @@ export async function runAudit(
     }, deadlineMs);
   });
 
+  let failedApplied = false;
   try {
     await Promise.race([work, timeout]);
   } catch (error) {
     try {
-      await deps.updateAuditIfPending(auditId, {
+      failedApplied = await deps.updateAuditIfPending(auditId, {
         status: "failed",
         errorMessage:
           error instanceof Error ? error.message : "Erro desconhecido",
@@ -140,34 +148,44 @@ export async function runAudit(
     clearTimeout(timer);
   }
 
-  // Estado final = o que esta no banco (a primeira transicao gravada).
-  let finalStatus: string | undefined;
-  try {
-    finalStatus = (await deps.getAuditById(auditId))?.status;
-  } catch (error) {
-    // Sem confirmacao, nao se afirma conclusao nem falha: nada de contar a
-    // cota nem de apagar achados que podem ser de uma auditoria concluida.
-    console.error(`[audit ${auditId}] falha ao ler o estado final:`, error);
-    return "pending";
-  }
+  const outcome = await confirmOutcome(auditId, deps, completedApplied, failedApplied);
 
-  if (finalStatus === "completed") {
-    // Conta o scan so quando concluido. Uma falha aqui nao desfaz o resultado.
+  if (outcome === "completed") {
+    // Conta o scan so com conclusao confirmada. Falha aqui nao desfaz o resultado.
     try {
       await deps.incrementScansUsed(userId);
     } catch (error) {
       console.error(`[audit ${auditId}] falha ao contar o scan:`, error);
     }
-    return "completed";
+  } else if (outcome === "failed") {
+    // Remove achados parciais. Uma insercao ja em voo pode chegar depois
+    // desta limpeza; por isso a leitura so expoe achados de `completed`.
+    try {
+      await deps.deleteAuditViolations(auditId);
+    } catch (error) {
+      console.error(`[audit ${auditId}] falha ao limpar achados parciais:`, error);
+    }
   }
+  return outcome;
+}
 
-  // `failed` (ou ainda `pending`, se nem a falha pode ser gravada): remove
-  // achados parciais. Uma insercao ja em voo pode chegar depois desta
-  // limpeza; por isso a leitura so expoe achados de auditorias `completed`.
+/**
+ * Estado final confirmado: a transicao aplicada por esta execucao ou, se
+ * nenhuma foi confirmada, a leitura do banco. Sem confirmacao: `pending`.
+ */
+async function confirmOutcome(
+  auditId: number,
+  deps: AuditRunnerDeps,
+  completedApplied: boolean,
+  failedApplied: boolean,
+): Promise<AuditOutcome> {
+  if (completedApplied) return "completed";
+  if (failedApplied) return "failed";
   try {
-    await deps.deleteAuditViolations(auditId);
+    const status = (await deps.getAuditById(auditId))?.status;
+    if (status === "completed" || status === "failed") return status;
   } catch (error) {
-    console.error(`[audit ${auditId}] falha ao limpar achados parciais:`, error);
+    console.error(`[audit ${auditId}] falha ao ler o estado final:`, error);
   }
-  return "failed";
+  return "pending";
 }

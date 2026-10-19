@@ -38,21 +38,21 @@ afterAll(() => {
 const status = async () => (await conn.all("SELECT status FROM audits WHERE id = 1"))[0].status;
 
 describe("updateAuditIfPending", () => {
-  it("aplica a partir de `pending`", async () => {
-    await db.updateAuditIfPending(1, { status: "completed", complianceScore: 90 });
+  it("aplica a partir de `pending` e confirma (true)", async () => {
+    await expect(db.updateAuditIfPending(1, { status: "completed", complianceScore: 90 })).resolves.toBe(true);
     expect(await status()).toBe("completed");
   });
 
   it("`completed` tardio não sobrescreve `failed`", async () => {
-    await db.updateAuditIfPending(1, { status: "failed", errorMessage: "tempo" });
-    await db.updateAuditIfPending(1, { status: "completed", complianceScore: 90 });
+    await expect(db.updateAuditIfPending(1, { status: "failed", errorMessage: "tempo" })).resolves.toBe(true);
+    await expect(db.updateAuditIfPending(1, { status: "completed", complianceScore: 90 })).resolves.toBe(false);
     const row = (await conn.all("SELECT status, complianceScore, errorMessage FROM audits WHERE id = 1"))[0];
     expect(row).toMatchObject({ status: "failed", complianceScore: null, errorMessage: "tempo" });
   });
 
   it("`failed` tardio não sobrescreve `completed`", async () => {
-    await db.updateAuditIfPending(1, { status: "completed", complianceScore: 90 });
-    await db.updateAuditIfPending(1, { status: "failed", errorMessage: "tempo" });
+    await expect(db.updateAuditIfPending(1, { status: "completed", complianceScore: 90 })).resolves.toBe(true);
+    await expect(db.updateAuditIfPending(1, { status: "failed", errorMessage: "tempo" })).resolves.toBe(false);
     expect(await status()).toBe("completed");
   });
 });

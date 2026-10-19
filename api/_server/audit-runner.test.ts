@@ -74,9 +74,10 @@ function makeFake(opts: FakeOptions = {}) {
       if (row["status"] === "pending") {
         Object.assign(row, updates);
         history.push(`${target}:aplicado`);
-      } else {
-        history.push(`${target}:ignorado`);
+        return true;
       }
+      history.push(`${target}:ignorado`);
+      return false;
     }),
     deleteAuditViolations: vi.fn(async () => {
       violations = 0;
@@ -162,10 +163,11 @@ describe("runAudit — falha", () => {
     expect(f.violations()).toBe(0);
   });
 
-  it("se nem `failed` puder ser gravado, não lança, registra o erro e devolve `failed`", async () => {
+  it("se nem `failed` puder ser gravado, não lança e não afirma falha (`pending`)", async () => {
     const f = makeFake({ scan: () => Promise.reject(new Error("scan")), failFailedWrite: true });
-    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("failed");
+    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("pending");
     expect(f.row["status"]).toBe("pending"); // fica para failStalePendingAudits
+    expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
   });
 
@@ -175,21 +177,35 @@ describe("runAudit — falha", () => {
     expect(f.row["errorMessage"]).toBe("Erro desconhecido");
   });
 
-  it("leitura do estado final falha após sucesso: não afirma conclusão nem conta a cota", async () => {
+  it("conclusão confirmada pela própria gravação: conta a cota sem depender da leitura", async () => {
     const f = makeFake({ failRead: true });
+    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("completed");
+    expect(f.deps.getAuditById).not.toHaveBeenCalled();
+    expect(f.deps.incrementScansUsed).toHaveBeenCalledTimes(1);
+  });
+
+  it("falha confirmada pela própria gravação: limpa achados sem depender da leitura", async () => {
+    const f = makeFake({ failRead: true, scan: () => Promise.reject(new Error("x")) });
+    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("failed");
+    expect(f.deps.getAuditById).not.toHaveBeenCalled();
+    expect(f.deps.deleteAuditViolations).toHaveBeenCalledWith(42);
+    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
+  });
+
+  it("nada confirmado (gravações e leitura falham): `pending`, sem contar a cota nem apagar achados", async () => {
+    const f = makeFake({ failCompletedWrite: true, failFailedWrite: true, failRead: true });
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("pending");
-    expect(f.row["status"]).toBe("completed"); // gravado, mas não confirmado
+    expect(f.row["status"]).toBe("pending");
     expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
     expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("leitura do estado final falha após erro: não afirma falha nem apaga achados", async () => {
-    const f = makeFake({ failRead: true, scan: () => Promise.reject(new Error("x")) });
-    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("pending");
-    expect(f.row["status"]).toBe("failed");
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
-    expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
+  it("nenhuma gravação confirmada, mas a leitura confirma `completed`: conta uma vez", async () => {
+    const f = makeFake({ failFailedWrite: true, failCompletedWrite: true });
+    f.row["status"] = "completed"; // concluída por esta execução, sem resposta da escrita
+    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("completed");
+    expect(f.deps.incrementScansUsed).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -263,6 +279,25 @@ describe("runAudit — prazo", () => {
     expect(f.violations()).toBe(2); // relatório concluído mantém os achados
     expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
     expect(f.deps.incrementScansUsed).toHaveBeenCalledTimes(1);
+  });
+
+  it("análise síncrona que passa do prazo sem o timer disparar: nenhuma escrita começa", async () => {
+    vi.useFakeTimers();
+    // O relógio avança 1,5 s "dentro" do scan, sem rodar timers: simula o
+    // JSDOM bloqueando o event loop além do prazo.
+    const f = makeFake({
+      scan: () => {
+        vi.setSystemTime(Date.now() + 1_500);
+        return Promise.resolve(SCAN);
+      },
+    });
+
+    await expect(runAudit(PARAMS, f.deps, 1_000)).resolves.toBe("failed");
+
+    expect(f.deps.createViolation).not.toHaveBeenCalled();
+    expect(f.history).toEqual(["failed:aplicado"]);
+    expect(f.row).toMatchObject({ status: "failed", errorMessage: TIMEOUT_MESSAGE });
+    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("scan dentro do prazo conclui normalmente", async () => {
