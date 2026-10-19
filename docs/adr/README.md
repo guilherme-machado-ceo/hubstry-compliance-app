@@ -15,6 +15,7 @@ Formato e processo: [ADR-0001](0001-registrar-decisoes-em-adrs.md). Modelo: [000
 | [0009](0009-segredos-e-variaveis-de-ambiente.md) | Gestão de segredos e variáveis de ambiente | Aceito (cron fail-closed: implementado no PR-5, em validação) |
 | [0010](0010-marca-e-selo-nvidia-inception.md) | Marca Hubstry e selo NVIDIA Inception (selo em páginas institucionais) | Aceito |
 | [0011](0011-dados-de-auditoria-e-html.md) | Tratamento do HTML analisado e retenção | Aceito (retenção de `completed`: implementada no PR-5, em validação; `failed`/`pending`: Proposto) |
+| [0012](0012-fase-de-beta-gratuito.md) | Operar como beta gratuito e adiar a cobrança | Aceito (hospedagem para o beta externo: pendente) |
 
 ## Decisões pendentes (ainda sem ADR)
 - Remover o script de analytics herdado do template (`analytics.manus.im`) e demais sobras do template.
@@ -22,4 +23,4 @@ Formato e processo: [ADR-0001](0001-registrar-decisoes-em-adrs.md). Modelo: [000
 - Remoção definitiva do modo demo / bypass de autenticação.
 - Pilar "Consentimento e Acessibilidade" mistura temas distintos no score.
 - Onde mora o Radar Regulatório (Hubstry ou Lexiograph).
-- Plano Vercel Hobby → Pro.
+- Hospedagem do beta externo: Vercel Hobby (aguardando confirmação por escrito da Vercel) ou Cloud Run (aguardando estimativa de custo). Ver ADR-0012.
