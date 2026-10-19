@@ -1,6 +1,6 @@
 # ADR-0002: Manter a hospedagem na Vercel
 
-- **Status:** Aceito
+- **Status:** Aceito (condição de revisão substituída pelo ADR-0012)
 - **Data:** 2026-10-18
 - **Decisores:** Guilherme (decisão final), Luna (revisão), Claude (proposta)
 
@@ -26,6 +26,10 @@ porque o problema não era de plataforma e o custo recairia sobre o
 fundador solo.
 
 ## Revisão
+> Substituída pelo [ADR-0012](0012-app-gratuito-na-vercel-hobby.md) em
+> 2026-10-19: o app permanece gratuito no plano Hobby, sem Pro, com o risco
+> dos termos registrado e aceito. Texto original mantido abaixo.
+
 Migrar para o plano Pro (ou equivalente que permita uso comercial) **antes
 do lançamento ou de qualquer uso comercial** do app, conforme os termos
 vigentes da Vercel — não apenas antes da primeira cobrança. Reavaliar a

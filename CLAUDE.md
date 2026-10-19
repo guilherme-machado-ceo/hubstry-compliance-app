@@ -111,19 +111,18 @@ scanner não decide base legal. Atualize esta tabela quando o status mudar.
 
 ## Roadmap aprovado (ordem)
 
-A ordem vigente está em `docs/ROADMAP.md` e no ADR-0012 (fase de beta
-gratuito, 19/10/2026). Em caso de divergência, valem esses dois documentos.
+A ordem vigente está em `docs/ROADMAP.md` e no ADR-0012 (19/10/2026). Em
+caso de divergência, valem esses dois documentos.
 
-- **Fase beta gratuito (ADR-0012):** cobrança adiada; Vercel Pro fora do
-  caminho crítico; Stripe preservado (não apagar código, segredos nem
-  configurações). Ordem: (1) confiabilidade do scan; (2) modo beta, com cota
-  finita e checkout bloqueado também no servidor; (3) termos de uso,
-  política de privacidade e exclusão de conta, com revisão jurídica;
-  (4) decisão de hospedagem.
-- **Portão do beta externo:** não abrir nem divulgar o beta a usuários
-  externos até haver confirmação escrita da Vercel sobre o plano Hobby ou
-  outra hospedagem decidida. Até lá, acesso externo só em testes
-  controlados. Não migrar de hospedagem sem decisão do Guilherme.
+- **App gratuito na Vercel Hobby (ADR-0012):** gratuito por tempo
+  indeterminado; sem Vercel Pro; sem migração de hospedagem; sem consulta à
+  Vercel. Cobrança congelada: não apagar, ampliar nem investir no código do
+  Stripe, segredos ou configurações; checkout desativado. Risco aceito: os
+  termos da Vercel reservam o Hobby a uso não comercial.
+- **Ordem:** (1) confiabilidade do scan; (2) modo gratuito, com cota mensal
+  finita e checkout desativado também no servidor; (3) termos de uso,
+  política de privacidade e exclusão de conta (rascunho até as pendências e
+  a revisão jurídica serem concluídas).
 - **Depois:** motor (base, três regras revisadas, demais regras); base local
   de 30–50 sites reais rotulados, separada das fixtures sintéticas;
   experimento de IA fora do produto (ADR-0007).
