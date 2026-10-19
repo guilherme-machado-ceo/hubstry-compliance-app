@@ -186,7 +186,7 @@ export const appRouter = router({
       return {
         success: true,
         message:
-          "Todos os seus dados foram excluidos conforme Art. 18, III, da LGPD.",
+          "Sua conta e os dados associados a ela foram excluídos (art. 18 da LGPD).",
       };
     }),
   }),

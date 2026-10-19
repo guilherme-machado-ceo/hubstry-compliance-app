@@ -377,7 +377,7 @@ export async function deleteUserData(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const { audits, violations, reports, subscriptions } = _schema;
+  const { audits, violations, reports, subscriptions, users } = _schema;
 
   // Busca IDs das auditorias do usuario
   const userAudits = await db
@@ -398,8 +398,15 @@ export async function deleteUserData(userId: number): Promise<void> {
   // Remove auditorias
   await db.delete(audits).where(eq(audits.userId, userId));
 
+  // Remove relatorios ligados ao usuario por userId (alem dos por auditoria)
+  await db.delete(reports).where(eq(reports.userId, userId));
+
   // Remove assinatura
   await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+
+  // Remove o proprio cadastro (nome, e-mail, identificador do GitHub, datas).
+  // Sem ele, a sessao existente deixa de autenticar (sdk.authenticateRequest).
+  await db.delete(users).where(eq(users.id, userId));
 
   console.log(
     `[LGPD] Todos os dados do usuario ${userId} foram excluidos (esquecimento completo)`,
