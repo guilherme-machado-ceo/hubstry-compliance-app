@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { COBRANCA_CONGELADA, ROTULO_PLANO_GRATUITO } from "@shared/gratuito";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,21 @@ export default function Dashboard() {
 
     try {
       const result = await createAudit.mutateAsync({ url: currentUrl });
+      // O servidor devolve o estado final; se ele não pôde ser confirmado
+      // (`pending`), o polling consulta o status até a confirmação.
+      if (result.status === "completed") {
+        setIsScanning(false);
+        setScanningUrl("");
+        navigate(`/audit/${result.auditId}`);
+        return;
+      }
+      if (result.status === "failed") {
+        setIsScanning(false);
+        setScanningUrl("");
+        refetch();
+        toast.error("Análise falhou. Tente novamente.");
+        return;
+      }
       setScanningAuditId(result.auditId);
       refetch();
       void pollStatus(result.auditId);
@@ -124,7 +140,9 @@ export default function Dashboard() {
     : 0;
   const limitReached = !!subscription && !isUnlimited && scansRemaining <= 0;
   const planLabel = subscription
-    ? { free: "Free", pro: "Pro", enterprise: "Enterprise" }[subscription.plan] ?? subscription.plan
+    ? COBRANCA_CONGELADA && subscription.plan === "free"
+      ? ROTULO_PLANO_GRATUITO
+      : `Plano ${{ free: "Free", pro: "Pro", enterprise: "Enterprise" }[subscription.plan] ?? subscription.plan}`
     : "";
 
   const statusStyle: Record<string, { label: string; color: string }> = {
@@ -146,14 +164,16 @@ export default function Dashboard() {
         {/* Plano e saldo */}
         <section className="flex flex-wrap items-center justify-between gap-4 border border-border rounded-lg px-6 py-5">
           <div>
-            <p className="font-semibold">Plano {planLabel}</p>
+            <p className="font-semibold">{planLabel}</p>
             <p className="text-muted-foreground text-sm mt-1">
               {isUnlimited
                 ? "Análises ilimitadas"
                 : `${scansRemaining} ${scansRemaining === 1 ? "análise restante" : "análises restantes"} este mês. O saldo reinicia no dia 1º.`}
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate("/pricing")}>Ver planos</Button>
+          <Button variant="outline" onClick={() => navigate("/pricing")}>
+            {COBRANCA_CONGELADA ? "Sobre o plano" : "Ver planos"}
+          </Button>
         </section>
 
         {/* Nova análise */}
@@ -191,11 +211,13 @@ export default function Dashboard() {
           {limitReached && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border rounded-lg p-4" style={{ borderColor: "#FF6605" }}>
               <p className="text-sm">
-                Você usou todas as análises do mês. O saldo reinicia no dia 1º, ou mude de plano agora.
+                {COBRANCA_CONGELADA
+                  ? "Você usou todas as análises do mês. O saldo reinicia no dia 1º."
+                  : "Você usou todas as análises do mês. O saldo reinicia no dia 1º, ou mude de plano agora."}
               </p>
               <Button size="sm" variant="outline" onClick={() => navigate("/pricing")}>
                 <Zap className="w-4 h-4 mr-1" />
-                Ver planos
+                {COBRANCA_CONGELADA ? "Sobre o plano" : "Ver planos"}
               </Button>
             </div>
           )}

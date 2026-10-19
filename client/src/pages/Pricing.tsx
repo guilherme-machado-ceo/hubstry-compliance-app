@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { toast } from "sonner";
+import { COBRANCA_CONGELADA, CONTATO, COTA_MENSAL_GRATUITA } from "@shared/gratuito";
 
 export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
@@ -98,6 +99,12 @@ export default function Pricing() {
   ];
   const current = subscription?.plan;
 
+  // Cobranca congelada (ADR-0012): o app e gratuito e nao ha planos pagos; o
+  // checkout tambem e bloqueado no servidor. O conteudo abaixo e preservado.
+  if (COBRANCA_CONGELADA) {
+    return <PlanoGratuito isAuthenticated={isAuthenticated} onStart={() => handleUpgrade("free")} />;
+  }
+
   return (
     <div className="hb-sans min-h-screen" style={{ background: HB.ink, color: HB.text }}>
       <SiteHeader />
@@ -151,6 +158,81 @@ export default function Pricing() {
           <h2 id="faq" className="hb-display text-2xl font-semibold">Perguntas frequentes</h2>
           <dl className="mt-8 space-y-8">
             {faq.map((item) => (
+              <div key={item.q}>
+                <dt className="font-semibold">{item.q}</dt>
+                <dd className="mt-2 leading-relaxed" style={{ color: HB.muted }}>{item.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+
+const ITENS_GRATUITOS = [
+  `${COTA_MENSAL_GRATUITA} análises por mês por conta`,
+  "Todos os temas da análise",
+  "Relatório com recomendações",
+  "Sem cartão de crédito",
+];
+
+const FAQ_GRATUITO = [
+  {
+    q: "O Hubstry Compliance é gratuito mesmo?",
+    a: "Sim. Não há planos pagos nem cobrança, e não pedimos cartão de crédito. Basta entrar com sua conta do GitHub.",
+  },
+  {
+    q: "Vou ser cobrado depois?",
+    a: "Não. Se isso mudar um dia, avisaremos com antecedência, e nada será cobrado sem que você contrate de forma expressa.",
+  },
+  {
+    q: "Por que existe um limite mensal?",
+    a: "Para evitar abuso e manter o serviço estável. O saldo reinicia no dia 1º de cada mês.",
+  },
+  {
+    q: "Preciso de mais análises ou quero dar feedback.",
+    a: `Escreva para ${CONTATO}.`,
+  },
+];
+
+function PlanoGratuito({ isAuthenticated, onStart }: { isAuthenticated: boolean; onStart: () => void }) {
+  return (
+    <div className="hb-sans min-h-screen" style={{ background: HB.ink, color: HB.text }}>
+      <SiteHeader />
+      <main className="max-w-6xl mx-auto px-6 pt-16">
+        <h1 className="hb-display font-bold leading-[1.05] text-4xl sm:text-5xl">Gratuito</h1>
+        <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
+          O Hubstry Compliance é gratuito. Não há planos pagos nem cobrança.
+        </p>
+
+        <div className="mt-12 max-w-md rounded-lg p-7 flex flex-col border" style={{ borderColor: HB.cyan }}>
+          <h2 className="text-base font-semibold" style={{ color: HB.muted }}>Plano gratuito</h2>
+          <p className="mt-3">
+            <span className="hb-display text-3xl font-bold">R$ 0</span>
+          </p>
+          <ul className="mt-6 space-y-2.5 text-[15px] flex-1">
+            {ITENS_GRATUITOS.map((item) => (
+              <li key={item} className="flex items-center gap-3">
+                <Dot color={HB.cyan} className="opacity-70" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <button
+            className="hb-focus mt-8 py-3 rounded-md font-medium border"
+            style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
+            onClick={onStart}
+          >
+            {isAuthenticated ? "Ir para o painel" : "Começar grátis"}
+          </button>
+        </div>
+
+        <section className="mt-20 max-w-3xl" aria-labelledby="faq">
+          <h2 id="faq" className="hb-display text-2xl font-semibold">Perguntas frequentes</h2>
+          <dl className="mt-8 space-y-8">
+            {FAQ_GRATUITO.map((item) => (
               <div key={item.q}>
                 <dt className="font-semibold">{item.q}</dt>
                 <dd className="mt-2 leading-relaxed" style={{ color: HB.muted }}>{item.a}</dd>

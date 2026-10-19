@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { useLocation } from "wouter";
+import { COBRANCA_CONGELADA, COTA_MENSAL_GRATUITA } from "@shared/gratuito";
 
 const COVERAGE = [
   "Padrões de design manipulativo",
@@ -85,11 +86,11 @@ export default function Home() {
                 {isAuthenticated ? "Fazer uma análise" : "Analisar meu site grátis"}
               </button>
               <button className="hb-focus text-base underline underline-offset-4 hover:text-white" style={{ color: HB.muted }} onClick={() => navigate("/pricing")}>
-                Ver planos
+                {COBRANCA_CONGELADA ? "Sobre o plano gratuito" : "Ver planos"}
               </button>
             </div>
             <p className="mt-5 text-sm" style={{ color: HB.muted }}>
-              5 análises gratuitas por mês. Sem cartão de crédito.
+              {COBRANCA_CONGELADA ? COTA_MENSAL_GRATUITA : 5} análises gratuitas por mês. Sem cartão de crédito.
             </p>
           </div>
 
@@ -151,7 +152,26 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Cobranca congelada (ADR-0012): app gratuito no lugar dos planos */}
+        {COBRANCA_CONGELADA && (
+          <section className="max-w-6xl mx-auto px-6" aria-labelledby="gratuito">
+            <h2 id="gratuito" className="hb-display text-2xl sm:text-3xl font-semibold">Gratuito</h2>
+            <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
+              O Hubstry Compliance é gratuito: {COTA_MENSAL_GRATUITA} análises por mês por conta, todos os temas da
+              análise e relatório com recomendações. Sem planos pagos e sem cartão de crédito.
+            </p>
+            <button
+              className="hb-focus mt-8 px-6 py-3 rounded-md font-medium border"
+              style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
+              onClick={login}
+            >
+              {isAuthenticated ? "Ir para o painel" : "Começar grátis"}
+            </button>
+          </section>
+        )}
+
         {/* Planos */}
+        {!COBRANCA_CONGELADA && (
         <section className="max-w-6xl mx-auto px-6" aria-labelledby="planos">
           <h2 id="planos" className="hb-display text-2xl sm:text-3xl font-semibold">Planos</h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -189,6 +209,7 @@ export default function Home() {
             ))}
           </div>
         </section>
+        )}
       </main>
 
       <SiteFooter />

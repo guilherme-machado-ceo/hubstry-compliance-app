@@ -1,3 +1,5 @@
+import { TRPCError } from "@trpc/server";
+import { CHECKOUT_DESATIVADO_MENSAGEM, COBRANCA_CONGELADA, withCotaGratuita } from "../_shared/gratuito.js";
 import { protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import Stripe from "stripe";
@@ -15,6 +17,12 @@ export const stripeRouter = router({
   createCheckout: protectedProcedure
     .input(z.object({ plan: z.enum(["PRO", "ENTERPRISE"]) }))
     .mutation(async ({ ctx, input }) => {
+      // Cobranca congelada (ADR-0012): bloqueado no servidor, antes de
+      // qualquer chamada ao Stripe, independentemente da interface.
+      if (COBRANCA_CONGELADA) {
+        throw new TRPCError({ code: "FORBIDDEN", message: CHECKOUT_DESATIVADO_MENSAGEM });
+      }
+
       const planDetails = STRIPE_PRODUCTS[input.plan];
 
       if (!planDetails.priceId) {
@@ -58,7 +66,7 @@ export const stripeRouter = router({
     const subscription = await db.getOrCreateSubscription(
       ctx.user.id,
     );
-    return subscription;
+    return withCotaGratuita(subscription);
   }),
 
   // Get payment history
