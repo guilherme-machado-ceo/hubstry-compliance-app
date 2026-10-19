@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 // Import MySQL schema for TypeScript types (canonical type source)
 import type { Audit, InsertUser, User, Violation } from "../../drizzle/schema.js";
 import * as mysqlSchema from "../../drizzle/schema.js";
@@ -152,6 +152,34 @@ export async function getUserByOpenId(
     .where(eq(users.openId, openId))
     .limit(1);
   return result.length > 0 ? (result[0] as User) : undefined;
+}
+
+/**
+ * Analises que contam na cota mensal: auditorias do usuario criadas desde
+ * `since` com status `completed` ou `pending` (a pendente reserva a vaga
+ * enquanto roda; `failed` nao conta). E a fonte da contagem da cota: derivada
+ * das proprias auditorias, nao de um contador separado, ela nao diverge por
+ * repeticao, timeout ou falha parcial (quota.ts).
+ */
+export async function countQuotaAudits(
+  userId: number,
+  since: Date,
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits } = _schema;
+  const rows = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(audits)
+    .where(
+      and(
+        eq(audits.userId, userId),
+        gte(audits.createdAt, since),
+        inArray(audits.status, ["completed", "pending"]),
+      ),
+    );
+  return Number(rows[0]?.n ?? 0);
 }
 
 export async function getOrCreateSubscription(userId: number) {
