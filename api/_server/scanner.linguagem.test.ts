@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { scanHtmlForViolations, type ViolationDetail } from "./scanner.js";
+import {
+  LIMITACAO_HEURISTICA,
+  scanHtmlForViolations,
+  type ViolationDetail,
+} from "./scanner.js";
 
 /**
  * Linguagem dos achados heurísticos (ADR-0005).
@@ -7,12 +11,15 @@ import { scanHtmlForViolations, type ViolationDetail } from "./scanner.js";
  * Cada caso usa um HTML que ACIONA a regra (o teste falha se a regra não
  * disparar) e verifica que o texto do achado:
  * - não afirma violação legal nem exigência legal;
- * - explicita que a análise é do HTML inicial e pode ser falso positivo;
- * - não recomenda Datavalid ou biometria;
- * - não usa severidade `critical`.
+ * - traz, uma única vez, a ressalva de análise heurística do HTML inicial;
+ * - não recomenda Datavalid, Serpro, Gov.br ou biometria;
+ * - não usa severidade `critical`;
+ * - não contém palavras comuns sem acento.
  *
- * O score esperado foi medido na `main` antes da mudança de texto: a correção
- * de linguagem não pode alterar a detecção nem o score.
+ * O score esperado foi medido na `main` (6ac3136) antes da mudança de texto.
+ * Este PR não altera detecção nem score; manter o score atual é restrição de
+ * escopo e NÃO implementa a regra do ADR-0005 de que indícios não reduzem o
+ * score (fica para PR próprio).
  */
 
 const FOOTER_PRIVACIDADE = `<footer><a href="/privacidade">Politica de privacidade</a></footer>`;
@@ -26,13 +33,26 @@ const AFIRMACAO_LEGAL =
   /violando|viola a lgpd|viola o eca|isso viola|exigid[oa] pel[oa]|conforme exigido|em desacordo com a lei|ilegal/i;
 const SOLUCAO_PROIBIDA = /datavalid|biometri|serpro|gov\.br/i;
 
+// Palavras frequentes nos textos que, sem acento, indicam texto não revisado.
+// Limites com \p{L} (e não \b) para "pagina" não casar dentro de "paginação".
+const SEM_ACENTO =
+  /(?<!\p{L})(nao|possivel|analise|heuristica|pagina|paginas|politica|publico|criancas|opcoes|opcao|botao|servico|servicos|referencia|afericao|ha|sao)(?!\p{L})/iu;
+
+const ocorrencias = (texto: string, trecho: string) => texto.split(trecho).length - 1;
+
 function expectLinguagemHeuristica(v: ViolationDetail) {
   const texto = textOf(v);
   expect(v.severity, v.title).not.toBe("critical");
   expect(texto, v.title).not.toMatch(AFIRMACAO_LEGAL);
   expect(texto, v.title).not.toMatch(SOLUCAO_PROIBIDA);
-  expect(v.description, v.title).toMatch(/HTML inicial/i);
-  expect(v.description, v.title).toMatch(/falso positivo/i);
+  expect(ocorrencias(v.description, LIMITACAO_HEURISTICA), v.title).toBe(1);
+  expect(v.description, v.title).toMatch(/HTML inicial/);
+  expect(v.description, v.title).toMatch(/não executa JavaScript/);
+  expect(v.description, v.title).toMatch(/outras páginas/);
+  expect(v.description, v.title).toMatch(/falso positivo/);
+  expect(v.description, v.title).toMatch(/não comprova violação legal/);
+  // O texto entre aspas simples cita termos literais da regra (ex.: 'nao').
+  expect(texto.replace(/'[^']*'/g, ""), v.title).not.toMatch(SEM_ACENTO);
 }
 
 interface Caso {
@@ -95,7 +115,8 @@ const CASOS: Caso[] = [
     regra: "roach motel",
     html: page(`<form><input name="email"><button type="submit">Assinar</button></form>${FOOTER_PRIVACIDADE}`),
     match: (v) => v.type === "dark_pattern" && /roach motel/i.test(v.title),
-    severidade: "warning",
+    // ADR-0005: "assinatura" é info.
+    severidade: "info",
     score: 80,
   },
   {
@@ -114,6 +135,27 @@ const CASOS: Caso[] = [
     match: (v) => v.type === "ad_tracker",
     severidade: "warning",
     score: 85,
+  },
+  {
+    regra: "autoplay",
+    html: page(`<video autoplay src="v.mp4"></video>${FOOTER_PRIVACIDADE}`),
+    match: (v) => v.type === "autoplay",
+    severidade: "warning",
+    score: 85,
+  },
+  {
+    regra: "acessibilidade: imagem sem alt",
+    html: page(`<img src="a.png">${FOOTER_PRIVACIDADE}`),
+    match: (v) => v.type === "other" && /texto alternativo/i.test(v.title),
+    severidade: "info",
+    score: 95,
+  },
+  {
+    regra: "acessibilidade: idioma não declarado",
+    html: `<html><body><h1>Loja Exemplo</h1>${FOOTER_PRIVACIDADE}</body></html>`,
+    match: (v) => v.type === "other" && /idioma/i.test(v.title),
+    severidade: "info",
+    score: 95,
   },
 ];
 
@@ -156,7 +198,7 @@ describe("Scanner — linguagem dos achados heurísticos (ADR-0005)", () => {
     expect(consentimento!.description).toMatch(/base legal/i);
   });
 
-  it("página que aciona todas as regras heurísticas não gera nenhum achado critical", async () => {
+  it("página que aciona todas as regras não gera critical e cada achado traz a ressalva uma vez", async () => {
     const html = `<html><head>
       <script src="https://www.googleadservices.com/pagead/conversion.js"></script>
     </head><body>
@@ -184,10 +226,8 @@ describe("Scanner — linguagem dos achados heurísticos (ADR-0005)", () => {
     }
     expect(result.violations.some((v) => /consentimento/i.test(v.title))).toBe(true);
     expect(result.summary.critical).toBe(0);
-    for (const v of result.violations) {
-      expect(textOf(v), v.title).not.toMatch(AFIRMACAO_LEGAL);
-      expect(textOf(v), v.title).not.toMatch(SOLUCAO_PROIBIDA);
-    }
+    expect(result.violations.length).toBeGreaterThanOrEqual(11);
+    result.violations.forEach(expectLinguagemHeuristica);
     // Todos os pilares acionados: score 0, igual ao da versão anterior.
     expect(result.complianceScore).toBe(0);
   });
