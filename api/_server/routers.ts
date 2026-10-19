@@ -108,7 +108,12 @@ export const appRouter = router({
         if (!audit || audit.userId !== ctx.user.id) {
           throw new Error("Auditoria nao encontrada");
         }
-        const violations = await db.getAuditViolations(input.id);
+        // Achados so de auditorias concluidas: uma auditoria `failed` pode ter
+        // achados parciais gravados antes da falha (audit-runner.ts).
+        const violations =
+          audit.status === "completed"
+            ? await db.getAuditViolations(input.id)
+            : [];
 
         const pillars = ECA_PILLARS.map((pillar) => {
           const pillarViolations = violations.filter(

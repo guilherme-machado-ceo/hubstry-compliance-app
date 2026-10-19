@@ -5,7 +5,8 @@ vi.mock("./db.js", () => ({
   getOrCreateSubscription: vi.fn(),
   createAudit: vi.fn(),
   createViolation: vi.fn(),
-  updateAudit: vi.fn(),
+  updateAuditIfPending: vi.fn(),
+  deleteAuditViolations: vi.fn(),
   incrementScansUsed: vi.fn(),
   failStalePendingAudits: vi.fn(),
   getUserAudits: vi.fn(),
@@ -52,20 +53,23 @@ describe("audits.create", () => {
       violations: [],
     });
 
+    vi.mocked(db.getAuditById).mockResolvedValue({ id: 42, userId: 7, status: "completed" } as never);
+
     const result = await caller().audits.create({ url: "https://example.com/" });
 
     expect(result).toEqual({ auditId: 42, status: "completed" });
-    expect(db.updateAudit).toHaveBeenCalledWith(42, expect.objectContaining({ status: "completed" }));
+    expect(db.updateAuditIfPending).toHaveBeenCalledWith(42, expect.objectContaining({ status: "completed" }));
     expect(db.incrementScansUsed).toHaveBeenCalledWith(7);
   });
 
   it("falha do scan devolve `failed` já gravado, nunca `pending`", async () => {
     vi.mocked(scanUrl).mockRejectedValue(new Error("Tempo limite excedido ao buscar a pagina"));
+    vi.mocked(db.getAuditById).mockResolvedValue({ id: 42, userId: 7, status: "failed" } as never);
 
     const result = await caller().audits.create({ url: "https://example.com/" });
 
     expect(result).toEqual({ auditId: 42, status: "failed" });
-    expect(db.updateAudit).toHaveBeenCalledWith(42, {
+    expect(db.updateAuditIfPending).toHaveBeenCalledWith(42, {
       status: "failed",
       errorMessage: "Tempo limite excedido ao buscar a pagina",
     });
@@ -86,6 +90,27 @@ describe("audits.create", () => {
     } as never);
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toThrow(/Limite/);
     expect(db.createAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("audits.get", () => {
+  it.each(["failed", "pending"])("auditoria `%s` não expõe achados (parciais) gravados", async (status) => {
+    vi.mocked(db.getAuditById).mockResolvedValue({ id: 42, userId: 7, status } as never);
+    vi.mocked(db.getAuditViolations).mockResolvedValue([{ id: 1, type: "other" }] as never);
+
+    const audit = await caller().audits.get({ id: 42 });
+
+    expect(audit.violations).toEqual([]);
+    expect(db.getAuditViolations).not.toHaveBeenCalled();
+  });
+
+  it("auditoria `completed` expõe os achados", async () => {
+    vi.mocked(db.getAuditById).mockResolvedValue({ id: 42, userId: 7, status: "completed" } as never);
+    vi.mocked(db.getAuditViolations).mockResolvedValue([{ id: 1, type: "other" }] as never);
+
+    const audit = await caller().audits.get({ id: 42 });
+
+    expect(audit.violations).toHaveLength(1);
   });
 });
 

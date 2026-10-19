@@ -4,15 +4,25 @@ import { scanUrl, type ScanResult } from "./scanner.js";
 /**
  * Execucao da auditoria dentro da propria requisicao (ADR-0012).
  *
- * O scan e a gravacao dos resultados terminam antes da resposta, com um prazo
- * total explicito. Falha ou prazo excedido sempre resultam em `failed`; o que
- * escapar disso (processo encerrado pela plataforma, banco indisponivel) e
- * marcado como `failed` por failStalePendingAudits na leitura seguinte.
+ * Prazo total de SCAN_DEADLINE_MS para a operacao inteira: busca da pagina,
+ * analise e gravacao dos resultados. O timer NAO interrompe codigo sincrono
+ * em execucao (a analise do JSDOM bloqueia o event loop); ele garante um
+ * estado final consistente, nao um corte rigido. O teto absoluto continua
+ * sendo o maxDuration da funcao (api/trpc/[trpc].ts).
  *
- * Orcamento de tempo (funcao tRPC com maxDuration 30 s, api/trpc/[trpc].ts):
- * - busca da pagina: ate 10 s (safe-fetch.ts, DEFAULT_TIMEOUT_MS);
- * - scan + gravacao: ate SCAN_DEADLINE_MS;
- * - folga para autenticacao, criacao da auditoria e partida a frio.
+ * Garantias:
+ * - As transicoes finais (`completed`/`failed`) so valem a partir de
+ *   `pending` (db.updateAuditIfPending): a primeira gravada prevalece e uma
+ *   escrita atrasada nao sobrescreve o estado final.
+ * - O resultado devolvido e o estado lido do banco depois da execucao.
+ * - Apos o prazo, nenhuma nova escrita comeca.
+ * - Auditoria que termina `failed` tem os achados parciais removidos (melhor
+ *   esforco); a leitura so expoe achados de auditorias `completed`.
+ * - O que escapar disso (funcao encerrada pela plataforma, banco indisponivel)
+ *   vira `failed` em failStalePendingAudits na leitura seguinte.
+ *
+ * Orcamento: busca da pagina ate 10 s (safe-fetch.ts) dentro dos 20 s;
+ * maxDuration 30 s deixa folga para autenticacao, criacao e partida a frio.
  */
 export const SCAN_DEADLINE_MS = 20_000;
 
@@ -38,14 +48,18 @@ type ViolationType =
 export interface AuditRunnerDeps {
   scanUrl: (url: string) => Promise<ScanResult>;
   createViolation: typeof db.createViolation;
-  updateAudit: typeof db.updateAudit;
+  updateAuditIfPending: typeof db.updateAuditIfPending;
+  deleteAuditViolations: typeof db.deleteAuditViolations;
+  getAuditById: (auditId: number) => Promise<{ status: string } | undefined>;
   incrementScansUsed: typeof db.incrementScansUsed;
 }
 
 const defaultDeps: AuditRunnerDeps = {
   scanUrl,
   createViolation: db.createViolation,
-  updateAudit: db.updateAudit,
+  updateAuditIfPending: db.updateAuditIfPending,
+  deleteAuditViolations: db.deleteAuditViolations,
+  getAuditById: db.getAuditById,
   incrementScansUsed: db.incrementScansUsed,
 };
 
@@ -84,7 +98,7 @@ export async function runAudit(
       });
     }
     ensureTime();
-    await deps.updateAudit(auditId, {
+    await deps.updateAuditIfPending(auditId, {
       status: "completed",
       complianceScore: result.complianceScore,
       totalViolations: result.violations.length,
@@ -104,11 +118,13 @@ export async function runAudit(
     }, deadlineMs);
   });
 
+  let workSucceeded = false;
   try {
     await Promise.race([work, timeout]);
+    workSucceeded = true;
   } catch (error) {
     try {
-      await deps.updateAudit(auditId, {
+      await deps.updateAuditIfPending(auditId, {
         status: "failed",
         errorMessage:
           error instanceof Error ? error.message : "Erro desconhecido",
@@ -118,16 +134,36 @@ export async function runAudit(
       // aplica failStalePendingAudits.
       console.error(`[audit ${auditId}] falha ao registrar erro:`, persistError);
     }
-    return "failed";
   } finally {
     clearTimeout(timer);
   }
 
-  // Conta o scan so quando concluido. Uma falha aqui nao desfaz o resultado.
+  // Estado final = o que esta no banco (a primeira transicao gravada).
+  let finalStatus: string | undefined;
   try {
-    await deps.incrementScansUsed(userId);
+    finalStatus = (await deps.getAuditById(auditId))?.status;
   } catch (error) {
-    console.error(`[audit ${auditId}] falha ao contar o scan:`, error);
+    console.error(`[audit ${auditId}] falha ao ler o estado final:`, error);
+    finalStatus = workSucceeded ? "completed" : "failed";
   }
-  return "completed";
+
+  if (finalStatus === "completed") {
+    // Conta o scan so quando concluido. Uma falha aqui nao desfaz o resultado.
+    try {
+      await deps.incrementScansUsed(userId);
+    } catch (error) {
+      console.error(`[audit ${auditId}] falha ao contar o scan:`, error);
+    }
+    return "completed";
+  }
+
+  // `failed` (ou ainda `pending`, se nem a falha pode ser gravada): remove
+  // achados parciais. Uma insercao ja em voo pode chegar depois desta
+  // limpeza; por isso a leitura so expoe achados de auditorias `completed`.
+  try {
+    await deps.deleteAuditViolations(auditId);
+  } catch (error) {
+    console.error(`[audit ${auditId}] falha ao limpar achados parciais:`, error);
+  }
+  return "failed";
 }

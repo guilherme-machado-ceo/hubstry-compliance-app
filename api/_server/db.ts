@@ -305,6 +305,34 @@ export async function updateAudit(
 }
 
 /**
+ * Atualiza a auditoria somente se ela ainda estiver `pending`. Usado nas
+ * transicoes finais (`completed`/`failed`): a primeira a ser gravada vale, e
+ * uma escrita atrasada nao sobrescreve o estado final (audit-runner.ts).
+ */
+export async function updateAuditIfPending(
+  auditId: number,
+  updates: Record<string, unknown>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits } = _schema;
+  await db
+    .update(audits)
+    .set(updates)
+    .where(and(eq(audits.id, auditId), eq(audits.status, "pending")));
+}
+
+/** Remove os achados de uma auditoria (ex.: gravados antes de uma falha). */
+export async function deleteAuditViolations(auditId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { violations } = _schema;
+  await db.delete(violations).where(eq(violations.auditId, auditId));
+}
+
+/**
  * Marca como `failed` as auditorias `pending` do usuario criadas antes de
  * `olderThan`: nao ha mais execucao viva para elas (processo encerrado pela
  * plataforma ou banco indisponivel ao registrar a falha).
