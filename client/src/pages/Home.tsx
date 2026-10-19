@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { useLocation } from "wouter";
+import { BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
 
 const COVERAGE = [
   "Padrões de design manipulativo",
@@ -151,7 +152,26 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Beta gratuito (ADR-0012): substitui a seção de planos durante o beta */}
+        {BETA_GRATUITO && (
+          <section className="max-w-6xl mx-auto px-6" aria-labelledby="beta">
+            <h2 id="beta" className="hb-display text-2xl sm:text-3xl font-semibold">{BETA_LABEL}</h2>
+            <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
+              Durante o beta, o uso é gratuito: {BETA_SCANS_PER_MONTH} análises por mês, todos os temas da análise e
+              relatório com recomendações. Sem cartão de crédito.
+            </p>
+            <button
+              className="hb-focus mt-8 px-6 py-3 rounded-md font-medium border"
+              style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
+              onClick={login}
+            >
+              {isAuthenticated ? "Ir para o painel" : "Participar do beta"}
+            </button>
+          </section>
+        )}
+
         {/* Planos */}
+        {!BETA_GRATUITO && (
         <section className="max-w-6xl mx-auto px-6" aria-labelledby="planos">
           <h2 id="planos" className="hb-display text-2xl sm:text-3xl font-semibold">Planos</h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -189,6 +209,7 @@ export default function Home() {
             ))}
           </div>
         </section>
+        )}
       </main>
 
       <SiteFooter />

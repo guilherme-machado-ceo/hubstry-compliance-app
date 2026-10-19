@@ -1,3 +1,5 @@
+import { TRPCError } from "@trpc/server";
+import { BETA_CHECKOUT_MESSAGE, BETA_GRATUITO, withBetaQuota } from "../_shared/beta.js";
 import { protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import Stripe from "stripe";
@@ -15,6 +17,12 @@ export const stripeRouter = router({
   createCheckout: protectedProcedure
     .input(z.object({ plan: z.enum(["PRO", "ENTERPRISE"]) }))
     .mutation(async ({ ctx, input }) => {
+      // Beta gratuito (ADR-0012): bloqueado no servidor, antes de qualquer
+      // chamada ao Stripe, independentemente da interface.
+      if (BETA_GRATUITO) {
+        throw new TRPCError({ code: "FORBIDDEN", message: BETA_CHECKOUT_MESSAGE });
+      }
+
       const planDetails = STRIPE_PRODUCTS[input.plan];
 
       if (!planDetails.priceId) {
@@ -58,7 +66,7 @@ export const stripeRouter = router({
     const subscription = await db.getOrCreateSubscription(
       ctx.user.id,
     );
-    return subscription;
+    return withBetaQuota(subscription);
   }),
 
   // Get payment history

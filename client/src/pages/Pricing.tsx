@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { toast } from "sonner";
+import { BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
 
 export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
@@ -98,6 +99,12 @@ export default function Pricing() {
   ];
   const current = subscription?.plan;
 
+  // Beta gratuito (ADR-0012): os planos pagos ficam suspensos; o checkout
+  // também é bloqueado no servidor. O conteúdo abaixo é preservado.
+  if (BETA_GRATUITO) {
+    return <BetaPricing isAuthenticated={isAuthenticated} onStart={() => handleUpgrade("free")} />;
+  }
+
   return (
     <div className="hb-sans min-h-screen" style={{ background: HB.ink, color: HB.text }}>
       <SiteHeader />
@@ -151,6 +158,82 @@ export default function Pricing() {
           <h2 id="faq" className="hb-display text-2xl font-semibold">Perguntas frequentes</h2>
           <dl className="mt-8 space-y-8">
             {faq.map((item) => (
+              <div key={item.q}>
+                <dt className="font-semibold">{item.q}</dt>
+                <dd className="mt-2 leading-relaxed" style={{ color: HB.muted }}>{item.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+
+const BETA_ITEMS = [
+    `${BETA_SCANS_PER_MONTH} análises por mês`,
+    "Todos os temas da análise",
+    "Relatório com recomendações",
+    "Sem cartão de crédito",
+  ];
+
+const BETA_FAQ = [
+  {
+    q: "O que é o beta gratuito?",
+    a: "Uma fase de validação do produto. Todas as contas usam a mesma análise, sem custo, com uma cota mensal de análises.",
+  },
+  {
+    q: "Vou ser cobrado depois?",
+    a: "Não automaticamente. Não pedimos cartão de crédito, e nenhuma cobrança acontece sem que você contrate um plano de forma expressa. Se houver planos pagos no futuro, eles serão anunciados com antecedência.",
+  },
+  {
+    q: "Por que existe um limite mensal?",
+    a: "Para evitar abuso e manter o serviço estável durante o beta. O saldo reinicia no dia 1º de cada mês.",
+  },
+  {
+    q: "Preciso de mais análises ou quero dar feedback.",
+    a: "Escreva para guilhermemachado@hubstry.onmicrosoft.com. O feedback dos usuários do beta orienta as próximas versões.",
+  },
+];
+
+function BetaPricing({ isAuthenticated, onStart }: { isAuthenticated: boolean; onStart: () => void }) {
+  return (
+    <div className="hb-sans min-h-screen" style={{ background: HB.ink, color: HB.text }}>
+      <SiteHeader />
+      <main className="max-w-6xl mx-auto px-6 pt-16">
+        <h1 className="hb-display font-bold leading-[1.05] text-4xl sm:text-5xl">{BETA_LABEL}</h1>
+        <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
+          O Hubstry Compliance está em beta. Durante esta fase, o uso é gratuito e os planos pagos estão suspensos.
+        </p>
+
+        <div className="mt-12 max-w-md rounded-lg p-7 flex flex-col border" style={{ borderColor: HB.cyan }}>
+          <h2 className="text-base font-semibold" style={{ color: HB.muted }}>{BETA_LABEL}</h2>
+          <p className="mt-3">
+            <span className="hb-display text-3xl font-bold">R$ 0</span>
+            <span style={{ color: HB.muted }}> durante o beta</span>
+          </p>
+          <ul className="mt-6 space-y-2.5 text-[15px] flex-1">
+            {BETA_ITEMS.map((item) => (
+              <li key={item} className="flex items-center gap-3">
+                <Dot color={HB.cyan} className="opacity-70" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <button
+            className="hb-focus mt-8 py-3 rounded-md font-medium border"
+            style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
+            onClick={onStart}
+          >
+            {isAuthenticated ? "Ir para o painel" : "Participar do beta"}
+          </button>
+        </div>
+
+        <section className="mt-20 max-w-3xl" aria-labelledby="faq">
+          <h2 id="faq" className="hb-display text-2xl font-semibold">Perguntas frequentes</h2>
+          <dl className="mt-8 space-y-8">
+            {BETA_FAQ.map((item) => (
               <div key={item.q}>
                 <dt className="font-semibold">{item.q}</dt>
                 <dd className="mt-2 leading-relaxed" style={{ color: HB.muted }}>{item.a}</dd>

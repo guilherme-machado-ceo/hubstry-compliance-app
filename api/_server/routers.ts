@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "../_shared/const.js";
+import { withBetaQuota } from "../_shared/beta.js";
 import { ECA_PILLARS } from "../_shared/pillars.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { clearCookieRaw } from "./_core/express5-compat.js";
@@ -28,7 +29,7 @@ export const appRouter = router({
 
   subscription: router({
     get: protectedProcedure.query(async ({ ctx }) => {
-      return db.getOrCreateSubscription(ctx.user.id);
+      return withBetaQuota(await db.getOrCreateSubscription(ctx.user.id));
     }),
   }),
 
@@ -43,8 +44,8 @@ export const appRouter = router({
       .input(z.object({ url: z.string().url() }))
       .mutation(async ({ ctx, input }) => {
         // Check subscription limits (-1 means unlimited)
-        const subscription = await db.getOrCreateSubscription(
-          ctx.user.id,
+        const subscription = withBetaQuota(
+          await db.getOrCreateSubscription(ctx.user.id),
         );
         const isUnlimited = subscription.scansPerMonth === -1;
         if (
@@ -54,7 +55,7 @@ export const appRouter = router({
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",
             message:
-              "Limite de scans atingido. Faca upgrade para continuar.",
+              "Limite de análises do mês atingido. O saldo reinicia no dia 1º.",
           });
         }
 
