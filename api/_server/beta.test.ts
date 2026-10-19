@@ -15,6 +15,11 @@ vi.mock("./db.js", () => ({
   updateAudit: vi.fn(),
   incrementScansUsed: vi.fn(),
   failStalePendingAudits: vi.fn(),
+  // Usadas pelo audit-runner do PR #26; incluídas para a suíte funcionar
+  // também depois da integração dos dois PRs.
+  updateAuditIfPending: vi.fn(),
+  deleteAuditViolations: vi.fn(),
+  getAuditById: vi.fn(),
 }));
 vi.mock("./scanner.js", () => ({ scanUrl: vi.fn() }));
 
