@@ -76,8 +76,8 @@ pnpm dev            # frontend (Vite) e backend (tRPC) em modo watch
 Abra **http://localhost:5173**. Em desenvolvimento, a autenticação é
 dispensada (`BYPASS_AUTH=true` em `.env.development`).
 
-Testes: `pnpm test`. A falha conhecida em `auth.logout.test.ts` é
-preexistente e está registrada no roadmap.
+Testes: rodam no CI (GitHub Actions) a cada PR; a suíte completa é
+obrigatória.
 
 ### Variáveis de ambiente (desenvolvimento)
 

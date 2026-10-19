@@ -48,7 +48,7 @@ preservado, checkout desativado). Sem Vercel Pro, sem migração. Ordem:
 | Motor: três regras | Idade (barreira etária com contexto), consentimento (controles validados), GTM isolado como inconclusivo | ADR-0005 |
 | Motor: demais regras | Lootbox, privacidade, misdirection, scroll infinito, autoplay, score em erro | ADR-0004 |
 | PR-1 | Regenerar `pnpm-lock.yaml` | — |
-| Testes e config | Aliases, cópias aninhadas no repo, teste de logout | — |
+| Testes e config | Aliases, cópias aninhadas no repo (teste de logout corrigido no PR de `fix/auth-logout-teste`) | — |
 | Limpeza do template | Remover analytics `analytics.manus.im` e outras sobras; arquivos `.ps1`/`.patch` soltos | decisão pendente |
 | Autenticação | Remover modo demo/bypass; proteger o `state` do OAuth | ADR-0009 |
 | Banco | Definir schema canônico; corrigir `insertId`; scan assíncrono confiável (`waitUntil`/persistência); isolamento do banco de preview | decisão pendente |
