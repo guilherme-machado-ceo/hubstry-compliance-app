@@ -37,7 +37,8 @@
   Em paralelo, prepara-se uma estimativa de custo do Cloud Run para o app
   inteiro (frontend, API, cron, tráfego de saída, logs, builds), considerando
   os créditos da GCP. Nenhuma das opções é apresentada como custo zero antes
-  dessa verificação, e não há migração até a decisão.
+  dessa verificação, e não há migração até a decisão. Estimativa em
+  [`docs/hospedagem/estimativa-cloud-run.md`](../hospedagem/estimativa-cloud-run.md).
 
 ## Consequências
 - O caixa é preservado e o esforço vai para precisão, confiabilidade e
