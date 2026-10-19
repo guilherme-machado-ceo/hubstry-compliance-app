@@ -171,6 +171,25 @@ describe("cota contada pelas auditorias do mês", () => {
     expect((await conn.all("SELECT COUNT(*) AS n FROM audits"))[0].n).toBe(COTA_MENSAL_GRATUITA);
   });
 
+  it("concorrência: requisições simultâneas com 1 vaga não ultrapassam o limite", async () => {
+    for (let i = 0; i < COTA_MENSAL_GRATUITA - 1; i++) await inserirAuditoria(7, "completed", new Date());
+    vi.mocked(scanUrl).mockResolvedValue(SCAN_OK);
+
+    const resultados = await Promise.allSettled(
+      Array.from({ length: 5 }, (_, i) => caller().audits.create({ url: `https://c${i}.example/` })),
+    );
+
+    const aceitas = resultados.filter((r) => r.status === "fulfilled");
+    const recusadas = resultados.filter(
+      (r) => r.status === "rejected" && (r.reason as { code?: string }).code === "TOO_MANY_REQUESTS",
+    );
+    expect(aceitas.length).toBeLessThanOrEqual(1);
+    expect(aceitas.length + recusadas.length).toBe(5);
+    expect(await usados()).toBeLessThanOrEqual(COTA_MENSAL_GRATUITA);
+    // Recusada não deixa auditoria fantasma no histórico.
+    expect((await conn.all("SELECT COUNT(*) AS n FROM audits"))[0].n).toBe(COTA_MENSAL_GRATUITA - 1 + aceitas.length);
+  });
+
   it("auditorias de outro usuário não contam", async () => {
     await inserirAuditoria(8, "completed", new Date());
     expect(await usados(7)).toBe(0);

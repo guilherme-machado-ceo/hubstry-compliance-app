@@ -9,7 +9,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import * as db from "./db.js";
 import { runAudit, STALE_MESSAGE, STALE_PENDING_MS } from "./audit-runner.js";
-import { withUsoDoMes } from "./quota.js";
+import { inicioDoMesUtc, withUsoDoMes } from "./quota.js";
 import { stripeRouter } from "./stripe-router.js";
 
 /** Fecha auditorias `pending` sem execucao viva antes de lê-las. */
@@ -95,6 +95,24 @@ export const appRouter = router({
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Não foi possível registrar a auditoria. Tente novamente.",
+          });
+        }
+
+        // A auditoria `pending` recem-criada ja reserva a vaga. Requisicoes
+        // simultaneas podem ter passado juntas pela verificacao acima, entao
+        // a contagem e refeita incluindo esta reserva: quem passou do limite
+        // desfaz a propria reserva e e recusado. Na disputa pela ultima vaga,
+        // todas podem ser recusadas, mas o limite nunca e ultrapassado.
+        if (
+          !isUnlimited &&
+          (await db.countQuotaAudits(ctx.user.id, inicioDoMesUtc())) >
+            subscription.scansPerMonth
+        ) {
+          await db.deleteAudit(auditId, ctx.user.id);
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message:
+              "Limite de análises do mês atingido. O saldo reinicia no dia 1º.",
           });
         }
 
