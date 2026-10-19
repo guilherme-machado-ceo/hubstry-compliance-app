@@ -50,8 +50,8 @@ export function Termos() {
       <section>
         <h2>1. Quem somos</h2>
         <p>
-          O Hubstry Compliance é um serviço da Hubstry Deep Tech, [PREENCHER: razão social e CNPJ], com sede no Rio
-          de Janeiro (RJ). Contato: <a className="underline underline-offset-4" href={`mailto:${CONTATO}`}>{CONTATO}</a>.
+          O Hubstry Compliance é um serviço da Hubstry Deep Tech, operado por GUILHERME GONCALVES MACHADO,
+          microempreendedor individual (MEI), CNPJ 55.252.460/0001-07, com sede no Rio de Janeiro (RJ). Contato: <a className="underline underline-offset-4" href={`mailto:${CONTATO}`}>{CONTATO}</a>.
         </p>
       </section>
 
@@ -137,8 +137,16 @@ export function Privacidade() {
       <section>
         <h2>1. Controlador e contato</h2>
         <p>
-          Hubstry Deep Tech, [PREENCHER: razão social e CNPJ], Rio de Janeiro (RJ). Encarregado pelo tratamento de
-          dados pessoais: [PREENCHER: nome], <a className="underline underline-offset-4" href={`mailto:${CONTATO}`}>{CONTATO}</a>.
+          Controlador: GUILHERME GONCALVES MACHADO, microempreendedor individual (MEI), CNPJ 55.252.460/0001-07,
+          responsável pela Hubstry Deep Tech, Rio de Janeiro (RJ).
+        </p>
+        <p>
+          Encarregado: como agente de tratamento de pequeno porte, não indicamos encarregado pelo tratamento de dados
+          pessoais, conforme o art. 11 da Resolução CD/ANPD nº 2/2022. Pedidos e comunicações dos titulares são
+          atendidos pelo canal de comunicação{" "}
+          <a className="underline underline-offset-4" href={`mailto:${CONTATO}`}>{CONTATO}</a>. [CONFIRMAR:
+          enquadramento como pequeno porte (receita bruta dentro do limite legal e ausência de grupo econômico que
+          o ultrapasse).]
         </p>
       </section>
 
