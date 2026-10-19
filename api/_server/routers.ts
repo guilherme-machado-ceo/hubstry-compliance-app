@@ -90,7 +90,10 @@ export const appRouter = router({
         }
 
         // Scan e gravacao terminam antes da resposta, com prazo total
-        // (audit-runner.ts). O resultado nunca fica em `pending`.
+        // (audit-runner.ts). O status devolvido e o estado final confirmado
+        // (`completed` ou `failed`) ou `pending` quando ele nao pode ser
+        // confirmado; nesse caso a interface consulta o status, e
+        // failStalePendingAudits fecha a auditoria se ela continuar pendente.
         const status = await runAudit({
           auditId,
           userId: ctx.user.id,
