@@ -53,3 +53,8 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Trava de type-check: os erros já existentes estão na linha de base
+      # (scripts/typecheck-baseline.json); qualquer erro novo bloqueia o PR.
+      - name: Type-check (sem erros novos)
+        run: node scripts/typecheck-ratchet.mjs
