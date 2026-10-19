@@ -20,6 +20,22 @@ Nada vai para a `main` sem diff revisado e testes executados.
 
 ## Regras invioláveis
 
+- **Execução exclusivamente remota.** A máquina local do Guilherme
+  (Windows, 8 GB de RAM) tem recursos limitados. Nela é **proibido** executar
+  `pnpm install`, `pnpm test`/`vitest`, `pnpm build`, `pnpm type-check`,
+  `tsc`, `vite build`, `vercel build`, suítes de testes, compilação,
+  instalação ou resolução de dependências, e qualquer comando, agente ou
+  processo que possa dispará-los indiretamente.
+  - Essas tarefas rodam **somente** em ambiente remoto na nuvem: sessão
+    remota (Linux) do Claude Code ou GitHub Actions.
+  - Se a sessão estiver rodando na máquina local, **pare antes** de qualquer
+    comando pesado e informe que a tarefa precisa ir para uma sessão remota.
+    **Sem fallback local.**
+  - Na máquina local, só inspeção leve do Git e edição pontual de arquivos.
+  - Nunca afirme que uma validação foi executada sem a evidência do
+    resultado remoto.
+  - Esta regra prevalece sobre instruções de tarefas que sugiram validar
+    localmente e só muda com autorização explícita do Guilherme.
 - Nunca faça push na `main`, merge, nem altere DNS, domínio, variáveis de
   ambiente ou banco de produção. Uma branch por PR, PRs pequenos e
   independentes.
@@ -95,18 +111,22 @@ scanner não decide base legal. Atualize esta tabela quando o status mudar.
 
 ## Roadmap aprovado (ordem)
 
-1. **PR-4** — SSRF no scanner (`assertSafeUrl` e fetch): faixas IANA, IPs
-   literais, todos os A/AAAA validados, conexão fixada em IP validado,
-   redirects revalidados, timeout até o fim do corpo, limite de tamanho.
-2. **PR-5** — cron fail-closed + agendamento versionado em `vercel.json`,
-   testes com banco simulado.
-3. Motor: base (helpers, `ruleId`/`evidenceLevel`, fontes, score) → três
-   regras revisadas (idade, consentimento, GTM) → demais regras.
-4. Base local de 30–50 sites reais rotulados (origem, data, hash do HTML,
-   rótulo por regra), separada das fixtures sintéticas; `scanner:baseline`
-   com métricas separadas.
-5. Experimento de IA fora do produto: Nemotron no Amazon Bedrock via
-   `scripts/ai-eval.ts`, comparado a rótulos humanos. Vertex AI só depois.
+A ordem vigente está em `docs/ROADMAP.md` e no ADR-0012 (19/10/2026). Em
+caso de divergência, valem esses dois documentos.
+
+- **App gratuito na Vercel Hobby (ADR-0012):** gratuito por tempo
+  indeterminado; sem Vercel Pro; sem migração de hospedagem; sem consulta à
+  Vercel. Cobrança congelada: não apagar, ampliar nem investir no código do
+  Stripe, segredos ou configurações; checkout desativado. Risco aceito: os
+  termos da Vercel reservam o Hobby a uso não comercial.
+- **Ordem:** (1) confiabilidade do scan; (2) modo gratuito, com cota mensal
+  finita e checkout desativado também no servidor; (3) termos de uso,
+  política de privacidade e exclusão de conta (rascunho até as pendências e
+  a revisão jurídica serem concluídas).
+- **Depois:** motor (base, três regras revisadas, demais regras); base local
+  de 30–50 sites reais rotulados, separada das fixtures sintéticas;
+  experimento de IA fora do produto (ADR-0007).
+- PR-4 (SSRF) e PR-5 (cron fail-closed) já foram integrados (PR #17 e #18).
 
 ## Formato de entrega
 
