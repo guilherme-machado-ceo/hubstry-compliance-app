@@ -20,6 +20,22 @@ export interface ScanResult {
   };
 }
 
+/**
+ * Aviso anexado a todo achado das regras de deteccao (ADR-0005): as regras
+ * leem apenas o HTML inicial, sem executar JavaScript, e nao comprovam
+ * violacao legal. Aplicado por comLimitacao(), nunca escrito em cada regra.
+ */
+export const LIMITACAO_HEURISTICA =
+  "Análise heurística do HTML inicial: o scanner não executa JavaScript nem verifica outras páginas do site, e o resultado pode ser um falso positivo. Este achado não comprova violação legal.";
+
+function comLimitacao(findings: ViolationDetail[]): ViolationDetail[] {
+  return findings.map((v) =>
+    v.description.includes(LIMITACAO_HEURISTICA)
+      ? v
+      : { ...v, description: `${v.description} ${LIMITACAO_HEURISTICA}` },
+  );
+}
+
 export interface ViolationDetail {
   type: string;
   severity: "critical" | "warning" | "info";
@@ -44,31 +60,31 @@ export async function scanHtmlForViolations(
     const document = dom.window.document;
 
     // Check for autoplay videos
-    violations.push(...detectAutoplay(document));
+    violations.push(...comLimitacao(detectAutoplay(document)));
 
     // Check for infinite scroll
-    violations.push(...detectInfiniteScroll(document));
+    violations.push(...comLimitacao(detectInfiniteScroll(document)));
 
     // Check for dark patterns
-    violations.push(...detectDarkPatterns(document));
+    violations.push(...comLimitacao(detectDarkPatterns(document)));
 
     // Check for ad trackers
-    violations.push(...detectAdTrackers(document));
+    violations.push(...comLimitacao(detectAdTrackers(document)));
 
     // Check for lootboxes
-    violations.push(...detectLootboxes(document));
+    violations.push(...comLimitacao(detectLootboxes(document)));
 
     // Check for privacy policy
-    violations.push(...detectPrivacyPolicy(document));
+    violations.push(...comLimitacao(detectPrivacyPolicy(document)));
 
     // Check for age verification
-    violations.push(...detectAgeVerification(document));
+    violations.push(...comLimitacao(detectAgeVerification(document)));
 
     // Check for consent mechanisms
-    violations.push(...detectConsent(document));
+    violations.push(...comLimitacao(detectConsent(document)));
 
     // Check for basic accessibility
-    violations.push(...detectAccessibility(document));
+    violations.push(...comLimitacao(detectAccessibility(document)));
   } catch (error) {
     console.error("Error scanning HTML:", error);
     violations.push({
@@ -122,11 +138,11 @@ function detectAutoplay(document: Document): ViolationDetail[] {
       violations.push({
         type: "autoplay",
         severity: "warning",
-        title: "Video com Autoplay Detectado",
+        title: "Vídeo com Reprodução Automática (autoplay)",
         description:
-          "Videos com autoplay podem prejudicar a experiencia do usuario e consumir dados desnecessariamente, especialmente para usuarios menores de idade.",
+          "Um elemento <video> tem o atributo 'autoplay' ou 'data-autoplay'. A reprodução automática pode prejudicar a experiência de uso e consumir dados móveis, especialmente de crianças e adolescentes. O atributo não garante a reprodução: navegadores podem bloqueá-la.",
         recommendation:
-          "Remova o atributo 'autoplay' ou implemente um controle de consentimento do usuario antes de reproduzir automaticamente.",
+          "Avalie remover o atributo 'autoplay' ou exigir uma ação do usuário antes de iniciar a reprodução.",
         elementSelector: "video[autoplay]",
       });
     }
@@ -148,11 +164,11 @@ function detectInfiniteScroll(document: Document): ViolationDetail[] {
     violations.push({
       type: "infinite_scroll",
       severity: "warning",
-      title: "Rolagem Infinita Detectada",
+      title: "Possível Rolagem Infinita",
       description:
-        "A rolagem infinita pode ser uma pratica de dark pattern que mantem usuarios engajados indefinidamente, especialmente prejudicial para menores.",
+        "Há elementos com classe ou atributo contendo 'infinite' ou 'endless'. O nome da classe não demonstra que a rolagem infinita esteja ativa nem avalia seu efeito sobre quem usa a página.",
       recommendation:
-        "Implemente paginacao explicita ou adicione um aviso claro sobre o conteudo infinito com opcao de parar.",
+        "Verifique se a página carrega conteúdo continuamente sem ação do usuário. Se carregar, considere paginação explícita ou pontos de parada, especialmente em serviços de acesso provável por crianças e adolescentes.",
       elementSelector: "[class*='infinite']",
     });
   }
@@ -179,12 +195,12 @@ function detectDarkPatterns(document: Document): ViolationDetail[] {
     if (submitButtons.length > 0 && cancelButtons.length === 0) {
       violations.push({
         type: "dark_pattern",
-        severity: "warning",
-        title: "Padrao de Roach Motel Detectado",
+        severity: "info",
+        title: "Possível Padrão de Roach Motel",
         description:
-          "Formulario sem opcao clara de cancelamento ou saida, tornando dificil para usuarios se desinscreverem.",
+          "Um formulário com botão de envio não tem botão ou link de cancelamento reconhecido pela regra. Formulários comuns, como os de busca ou contato, também acionam este achado; a regra não avalia fluxos de assinatura ou cancelamento.",
         recommendation:
-          "Adicione um botao de cancelamento ou voltar com a mesma proeminencia do botao de envio.",
+          "Se o formulário fizer parte de um fluxo de assinatura ou cadastro, verifique se cancelar ou sair é tão fácil quanto aderir.",
       });
     }
   });
@@ -201,12 +217,12 @@ function detectDarkPatterns(document: Document): ViolationDetail[] {
     ) {
       violations.push({
         type: "dark_pattern",
-        severity: "critical",
-        title: "Misdirection Detectada",
+        severity: "warning",
+        title: "Possível Misdirection em Botão de Recusa",
         description:
-          "Botoes de recusa estao visualmente desfavorecidos em relacao aos botoes de aceitacao.",
+          "Um botão com texto de recusa (a regra procura 'nao' e 'recusar') tem a propriedade 'opacity' no estilo inline, o que pode indicar destaque visual menor que o da opção de aceitar. O valor da opacidade, as folhas de estilo e a aparência final não foram avaliados.",
         recommendation:
-          "Certifique-se de que os botoes de recusa tem a mesma proeminencia visual que os de aceitacao.",
+          "Compare visualmente as opções de aceitar e recusar e, se houver diferença de destaque, dê a mesma proeminência a ambas.",
       });
     }
   });
@@ -245,11 +261,11 @@ function detectAdTrackers(document: Document): ViolationDetail[] {
     violations.push({
       type: "ad_tracker",
       severity: "warning",
-      title: `${trackerCount} Rastreador(es) de Anuncios Detectado(s)`,
+      title: `${trackerCount} Rastreador(es) de Anúncios Detectado(s)`,
       description:
-        "Multiplos rastreadores de anuncios foram encontrados na pagina, potencialmente coletando dados de usuarios.",
+        "Foram encontrados scripts associados a serviços de publicidade ou de medição de audiência. A presença do script não demonstra quais dados são coletados nem se o carregamento ocorre antes da escolha do usuário.",
       recommendation:
-        "Revise a politica de privacidade e implemente consentimento explicito antes de carregar rastreadores, especialmente para menores.",
+        "Verifique quais dados esses serviços coletam e a base legal adotada para cada um; se a base for o consentimento, confirme que o carregamento respeita a escolha do usuário. Dê atenção especial a crianças e adolescentes.",
     });
   }
 
@@ -293,12 +309,12 @@ function detectLootboxes(document: Document): ViolationDetail[] {
   if (hasLootboxPattern && hasPaymentPattern) {
     violations.push({
       type: "lootbox",
-      severity: "critical",
-      title: "Possivel Mecanica de Lootbox Detectada",
+      severity: "warning",
+      title: "Possível Mecânica de Loot Box ou Sorteio Pago",
       description:
-        "A pagina pode conter mecanismos de sorteio ou caixas misterio com pagamento, o que e prejudicial para menores.",
+        "O texto da página contém termos associados a sorteios ou caixas de recompensa (como 'caixa', 'gacha' ou 'loot') e termos de pagamento (como 'comprar'). A presença simultânea desses termos é um indício fraco: não demonstra que exista caixa de recompensa paga nem que ela esteja disponível para crianças e adolescentes.",
       recommendation:
-        "Implemente controles de idade robustos e avisos claros sobre mecanicas de sorteio. Considere remover essas funcionalidades para usuarios menores.",
+        "Verifique manualmente se há itens de recompensa aleatória adquiridos com dinheiro real ou moeda virtual e se o serviço é direcionado a crianças e adolescentes ou de acesso provável por eles. Se houver, avalie o recurso à luz da Lei 15.211/2025 (ECA Digital), com apoio jurídico.",
     });
   }
 
@@ -336,12 +352,12 @@ function detectPrivacyPolicy(document: Document): ViolationDetail[] {
   if (!hasPrivacyPolicy) {
     violations.push({
       type: "missing_privacy_policy",
-      severity: "critical",
-      title: "Politica de Privacidade Nao Encontrada",
+      severity: "warning",
+      title: "Referência à Política de Privacidade Não Encontrada",
       description:
-        "Nenhuma referencia a politica de privacidade foi encontrada na pagina. Isso viola LGPD e regulamentacoes de protecao de dados.",
+        "Nenhum termo associado a política de privacidade (como 'privacidade', 'privacy' ou 'policy') foi encontrado no texto da página. Isso não demonstra que o site não tenha política de privacidade: ela pode estar em outra página, em um menu carregado por JavaScript ou em um texto sem esses termos.",
       recommendation:
-        "Adicione um link para a politica de privacidade no rodape ou cabecalho da pagina, tornando-o facilmente acessivel.",
+        "Confirme se a política de privacidade existe e se está facilmente acessível a partir desta página, por exemplo por um link no rodapé ou no cabeçalho.",
     });
   }
 
@@ -387,12 +403,12 @@ function detectAgeVerification(document: Document): ViolationDetail[] {
   if (targetsChildren && !hasAgeGate) {
     violations.push({
       type: "age_verification",
-      severity: "critical",
-      title: "Verificacao de Idade Ausente",
+      severity: "info",
+      title: "Possível Público Infantojuvenil sem Aferição de Idade Identificada",
       description:
-        "A pagina parece ser direcionada a menores, mas nao possui mecanismo de verificacao de idade conforme exigido pelo ECA Digital.",
+        "O texto da página contém termos associados ao público infantojuvenil (como 'jogo' ou 'infantil') e nenhum termo associado à aferição de idade. A menção a esses termos não demonstra que o serviço seja direcionado a crianças e adolescentes ou de acesso provável por eles, e a ausência de termos não demonstra a ausência de mecanismo.",
       recommendation:
-        "Implemente um sistema robusto de verificacao de idade usando APIs oficiais como Datavalid (Serpro/Gov.br) antes de permitir acesso.",
+        "Avalie se o serviço é direcionado a crianças e adolescentes ou de acesso provável por eles. Se for, documente o mecanismo de aferição de idade adotado e sua proporcionalidade ao risco, considerando a Lei 15.211/2025 (ECA Digital), o Decreto 12.880/2026 e as orientações da ANPD. Esta análise não indica método nem fornecedor de aferição.",
     });
   }
 
@@ -440,12 +456,12 @@ function detectConsent(document: Document): ViolationDetail[] {
   if (!hasConsentMechanism && !cmpScripts) {
     violations.push({
       type: "other",
-      severity: "critical",
-      title: "Mecanismo de Consentimento Nao Encontrado",
+      severity: "warning",
+      title: "Mecanismo de Consentimento Não Identificado",
       description:
-        "Nenhum banner ou mecanismo de consentimento para cookies/dados foi detectado, violando LGPD e o ECA Digital.",
+        "Não foram encontrados termos associados a banner de consentimento (como 'cookies' ou 'aceitar') nem script de plataforma de gestão de consentimento (CMP) conhecida. Isso não indica irregularidade por si só: o consentimento não é a única base legal possível e pode não ser necessário se a página não usar cookies ou rastreadores não essenciais.",
       recommendation:
-        "Implemente uma plataforma de gerenciamento de consentimento (CMP) compativel com LGPD antes de carregar rastreadores.",
+        "Verifique quais cookies e rastreadores a página carrega e a base legal de cada tratamento. Se a base for o consentimento, confirme que ele é obtido e registrado antes do carregamento dos itens não essenciais (ver o Guia Orientativo sobre Cookies e Proteção de Dados da ANPD, de caráter orientativo).",
     });
   }
 
@@ -474,9 +490,9 @@ function detectAccessibility(document: Document): ViolationDetail[] {
       severity: "info",
       title: `${imagesWithoutAlt} Imagem(ns) sem Texto Alternativo`,
       description:
-        "Imagens sem atributo alt dificultam o acesso por pessoas com deficiencia visual, impactando a acessibilidade digital.",
+        "Imagens sem atributo alt dificultam o acesso de pessoas com deficiência visual que usam leitores de tela.",
       recommendation:
-        "Adicione o atributo alt descritivo a todas as imagens. Use alt=\"\" para imagens decorativas.",
+        "Adicione um atributo alt descritivo às imagens informativas. Use alt=\"\" para imagens decorativas.",
       elementSelector: "img:not([alt])",
     });
   }
@@ -487,11 +503,11 @@ function detectAccessibility(document: Document): ViolationDetail[] {
     violations.push({
       type: "other",
       severity: "info",
-      title: "Idioma da Pagina Nao Declarado",
+      title: "Idioma da Página Não Declarado",
       description:
-        "O atributo lang nao esta definido no elemento <html>, dificultando leitores de tela.",
+        "O atributo lang não está definido no elemento <html>, o que dificulta a leitura correta por leitores de tela.",
       recommendation:
-        "Adicione lang=\"pt-BR\" ao elemento <html> para indicar o idioma da pagina.",
+        "Adicione lang=\"pt-BR\" (ou o idioma correspondente) ao elemento <html>.",
       elementSelector: "html:not([lang])",
     });
   }
