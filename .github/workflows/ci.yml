@@ -41,15 +41,9 @@ jobs:
       - name: Instalar dependências
         run: pnpm install --no-frozen-lockfile
 
-      # A falha de auth.logout.test.ts é preexistente e tratada à parte
-      # (CLAUDE.md). Fica fora desta etapa obrigatória e roda na etapa
-      # seguinte, visível, sem bloquear o PR.
+      # Suíte completa e obrigatória: sem exclusões nem etapas não bloqueantes.
       - name: Testes
-        run: pnpm vitest run --exclude "api/_server/auth.logout.test.ts"
-
-      - name: Teste com falha preexistente conhecida (não bloqueia)
-        continue-on-error: true
-        run: pnpm vitest run api/_server/auth.logout.test.ts
+        run: pnpm vitest run
 
       - name: Build
         run: pnpm build
