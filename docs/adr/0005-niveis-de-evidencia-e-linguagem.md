@@ -1,6 +1,6 @@
 # ADR-0005: Níveis de evidência e linguagem dos achados
 
-- **Status:** Aceito (persistência e severidades complementares do PR #24: Proposto)
+- **Status:** Aceito (persistência: Proposto)
 - **Data:** 2026-10-18
 - **Decisores:** Guilherme (decisão final), Luna (revisão), Claude (proposta)
 
@@ -26,31 +26,50 @@ estruturada permanece proposta até uma migração coordenada dos schemas.
 
 ## Severidades por regra no scanner atual (PR #24)
 
-Aplicação das severidades acima às regras de `api/_server/scanner.ts`. As
-linhas marcadas como **Proposto** não constam da decisão acordada; foram
-propostas no PR #24 e **dependem de aprovação do Guilherme** (com parecer da
-Luna). Até lá, não devem ser apresentadas como decididas.
+Aplicação das severidades acima às regras de `api/_server/scanner.ts`.
+As quatro classificações complementares (roach motel, loot box, referência à
+política de privacidade e misdirection) foram **aprovadas pelo Guilherme em
+19/10/2026**, após parecer da Luna, na revisão do PR #24.
 
 | Regra (`type`) | Severidade | Status |
 |---|---|---|
 | Aferição de idade (`age_verification`) | `info` | Acordado (decisão acima) |
 | Consentimento (`other`, título "Consentimento") | `warning` | Acordado (decisão acima) |
-| Roach motel (`dark_pattern`) | `info` | Acordado, por interpretação: é a única regra sobre fluxos de assinatura/cancelamento, por isso recebe a severidade de "assinatura". Confirmar o mapeamento. |
-| Loot box (`lootbox`) | `warning` | **Proposto, pendente** |
-| Referência à política de privacidade (`missing_privacy_policy`) | `warning` | **Proposto, pendente** |
-| Misdirection (`dark_pattern`) | `warning` | **Proposto, pendente** |
+| Roach motel (`dark_pattern`) | `info` | Aprovado (19/10/2026); corresponde à severidade de "assinatura" da decisão acima |
+| Loot box (`lootbox`) | `warning` | Aprovado (19/10/2026) |
+| Referência à política de privacidade (`missing_privacy_policy`) | `warning` | Aprovado (19/10/2026), com condição de redação (abaixo) |
+| Misdirection (`dark_pattern`) | `warning` | Aprovado (19/10/2026) |
 | Autoplay, rolagem infinita, rastreadores | `warning` | Severidade anterior mantida; não decidida por este ADR |
 | Acessibilidade (alt, `lang`) | `info` | Severidade anterior mantida; não decidida por este ADR |
 
-Justificativa das propostas: as três regras eram `critical`, mas se baseiam
-em coocorrência de termos ou em atributos do HTML inicial, ou seja, são
-indícios, e a decisão proíbe `critical` para indícios. `warning` mantém o
-achado em destaque sem afirmá-lo como constatado; `info` seria a
-alternativa se o achado tiver valor apenas informativo.
+Critério usado: como nenhum achado do scanner é confirmado, a severidade
+combina a força do sinal com a gravidade do problema, caso se confirme.
+`warning` indica um sinal que merece conferência humana sobre um tema de peso;
+`info` indica um sinal genérico, que dispara com frequência em páginas sem
+problema.
+
+Justificativas:
+- **Loot box:** o sinal é fraco (coocorrência de termos como "caixa" e
+  "comprar"), mas, se confirmado, envolve crianças, adolescentes e dinheiro.
+- **Referência à política de privacidade:** a coerência com o consentimento
+  (também `warning`, também baseado na ausência de termos) pesa, assim como o
+  filtro permissivo: qualquer menção a "dados", "privacy", "policy" ou
+  "privacidade" impede o achado. **Condição:** o texto deve dizer apenas que
+  o scanner não encontrou referência na página analisada, sem afirmar que a
+  política inexiste nem que houve violação legal. Páginas montadas por
+  JavaScript, com HTML inicial quase vazio, são a principal fonte conhecida
+  de falso positivo.
+- **Misdirection:** o sinal é fraco (qualquer `opacity` inline num botão com
+  termo de recusa), mas o tema afeta diretamente a qualidade do consentimento.
+- **Roach motel:** formulários de busca ou contato também disparam a regra;
+  o sinal é genérico demais para ir além de `info`.
 
 Todo achado das regras de detecção traz a mesma ressalva (análise do HTML
 inicial, sem JavaScript nem outras páginas, possibilidade de falso positivo,
 não comprova violação legal), aplicada num único ponto do código.
+
+Revisar essas severidades quando houver a base de sites reais rotulados
+(roadmap, item 4), que permitirá medir a taxa de falso positivo de cada regra.
 
 **Não implementado:** a regra "indícios e inconclusivos não reduzem o score".
 O PR #24 preserva o score atual por restrição de escopo; a mudança fica para

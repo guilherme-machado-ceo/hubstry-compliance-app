@@ -191,6 +191,17 @@ describe("Scanner — linguagem dos achados heurísticos (ADR-0005)", () => {
     expect(idade!.recommendation).not.toMatch(/reconhecimento facial|documento oficial/i);
   });
 
+  it("política de privacidade: diz que não encontrou referência, sem afirmar inexistência", async () => {
+    const caso = CASOS.find((c) => c.regra === "politica de privacidade")!;
+    const { violations } = await scanHtmlForViolations(caso.html);
+    const privacidade = violations.find((v) => v.type === "missing_privacy_policy");
+    expect(privacidade).toBeDefined();
+    expect(privacidade!.title).toMatch(/^Referência à Política de Privacidade Não Encontrada$/);
+    expect(privacidade!.description).toMatch(/foi encontrado no texto da página/);
+    expect(privacidade!.description).toMatch(/não demonstra que o site não tenha política de privacidade/);
+    expect(textOf(privacidade!)).not.toMatch(/(site|página) não (tem|possui) política|política (de privacidade )?(inexiste|ausente)/i);
+  });
+
   it("consentimento: não presume que consentimento seja a única base legal", async () => {
     const { violations } = await scanHtmlForViolations(CASOS[1].html);
     const consentimento = violations.find((v) => /consentimento/i.test(v.title));

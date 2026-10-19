@@ -8,7 +8,7 @@ Formato e processo: [ADR-0001](0001-registrar-decisoes-em-adrs.md). Modelo: [000
 | [0002](0002-hospedagem-na-vercel.md) | Manter a hospedagem na Vercel | Aceito |
 | [0003](0003-funcoes-serverless-esm.md) | Convenções das funções serverless em ESM | Aceito |
 | [0004](0004-motor-de-scan-deterministico.md) | Motor de scan determinístico | Aceito |
-| [0005](0005-niveis-de-evidencia-e-linguagem.md) | Níveis de evidência e linguagem dos achados | Aceito (persistência e severidades de loot box, política de privacidade e misdirection: Proposto; "indícios não reduzem o score": não implementado) |
+| [0005](0005-niveis-de-evidencia-e-linguagem.md) | Níveis de evidência e linguagem dos achados | Aceito (persistência: Proposto; "indícios não reduzem o score": não implementado) |
 | [0006](0006-fontes-normativas-versionadas.md) | Fontes normativas versionadas com status | Aceito |
 | [0007](0007-ia-fora-do-caminho-critico.md) | IA apenas em experimento fora do produto | Aceito |
 | [0008](0008-protecao-ssrf-no-scanner.md) | Proteção contra SSRF no scanner | Aceito (implementado no PR-4, PR #17; validação em runtime real pendente) |
