@@ -1,5 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { BETA_GRATUITO, BETA_LABEL } from "@shared/beta";
+import { COBRANCA_CONGELADA, ROTULO_PLANO_GRATUITO } from "@shared/gratuito";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -125,8 +125,8 @@ export default function Dashboard() {
     : 0;
   const limitReached = !!subscription && !isUnlimited && scansRemaining <= 0;
   const planLabel = subscription
-    ? BETA_GRATUITO && subscription.plan === "free"
-      ? BETA_LABEL
+    ? COBRANCA_CONGELADA && subscription.plan === "free"
+      ? ROTULO_PLANO_GRATUITO
       : `Plano ${{ free: "Free", pro: "Pro", enterprise: "Enterprise" }[subscription.plan] ?? subscription.plan}`
     : "";
 
@@ -157,7 +157,7 @@ export default function Dashboard() {
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate("/pricing")}>
-            {BETA_GRATUITO ? "Sobre o beta" : "Ver planos"}
+            {COBRANCA_CONGELADA ? "Sobre o plano" : "Ver planos"}
           </Button>
         </section>
 
@@ -196,13 +196,13 @@ export default function Dashboard() {
           {limitReached && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border rounded-lg p-4" style={{ borderColor: "#FF6605" }}>
               <p className="text-sm">
-                {BETA_GRATUITO
+                {COBRANCA_CONGELADA
                   ? "Você usou todas as análises do mês. O saldo reinicia no dia 1º."
                   : "Você usou todas as análises do mês. O saldo reinicia no dia 1º, ou mude de plano agora."}
               </p>
               <Button size="sm" variant="outline" onClick={() => navigate("/pricing")}>
                 <Zap className="w-4 h-4 mr-1" />
-                {BETA_GRATUITO ? "Sobre o beta" : "Ver planos"}
+                {COBRANCA_CONGELADA ? "Sobre o plano" : "Ver planos"}
               </Button>
             </div>
           )}

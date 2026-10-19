@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { toast } from "sonner";
-import { BETA_CONTATO, BETA_CONVITE_PUBLICO, BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
+import { COBRANCA_CONGELADA, CONTATO, COTA_MENSAL_GRATUITA } from "@shared/gratuito";
 
 export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
@@ -99,10 +99,10 @@ export default function Pricing() {
   ];
   const current = subscription?.plan;
 
-  // Beta gratuito (ADR-0012): os planos pagos ficam suspensos; o checkout
-  // também é bloqueado no servidor. O conteúdo abaixo é preservado.
-  if (BETA_GRATUITO) {
-    return <BetaPricing isAuthenticated={isAuthenticated} onStart={() => handleUpgrade("free")} />;
+  // Cobranca congelada (ADR-0012): o app e gratuito e nao ha planos pagos; o
+  // checkout tambem e bloqueado no servidor. O conteudo abaixo e preservado.
+  if (COBRANCA_CONGELADA) {
+    return <PlanoGratuito isAuthenticated={isAuthenticated} onStart={() => handleUpgrade("free")} />;
   }
 
   return (
@@ -171,60 +171,49 @@ export default function Pricing() {
   );
 }
 
-const BETA_ITEMS = [
-    `${BETA_SCANS_PER_MONTH} análises por mês`,
-    "Todos os temas da análise",
-    "Relatório com recomendações",
-    "Sem cartão de crédito",
-  ];
+const ITENS_GRATUITOS = [
+  `${COTA_MENSAL_GRATUITA} análises por mês por conta`,
+  "Todos os temas da análise",
+  "Relatório com recomendações",
+  "Sem cartão de crédito",
+];
 
-const BETA_FAQ = [
+const FAQ_GRATUITO = [
   {
-    q: "O que é o beta gratuito?",
-    a: BETA_CONVITE_PUBLICO
-      ? "Uma fase de validação do produto. Todas as contas usam a mesma análise, sem custo, com uma cota mensal de análises."
-      : "Uma fase de validação do produto, por enquanto fechada e com participantes convidados. Quem participa usa a mesma análise, sem custo, com uma cota mensal de análises.",
-  },
-  {
-    q: "Como participo?",
-    a: BETA_CONVITE_PUBLICO
-      ? "Entre com sua conta do GitHub e comece a analisar."
-      : `Peça um convite pelo e-mail ${BETA_CONTATO}.`,
+    q: "O Hubstry Compliance é gratuito mesmo?",
+    a: "Sim. Não há planos pagos nem cobrança, e não pedimos cartão de crédito. Basta entrar com sua conta do GitHub.",
   },
   {
     q: "Vou ser cobrado depois?",
-    a: "Não automaticamente. Não pedimos cartão de crédito, e nenhuma cobrança acontece sem que você contrate um plano de forma expressa. Se houver planos pagos no futuro, eles serão anunciados com antecedência.",
+    a: "Não. Se isso mudar um dia, avisaremos com antecedência, e nada será cobrado sem que você contrate de forma expressa.",
   },
   {
     q: "Por que existe um limite mensal?",
-    a: "Para evitar abuso e manter o serviço estável durante o beta. O saldo reinicia no dia 1º de cada mês.",
+    a: "Para evitar abuso e manter o serviço estável. O saldo reinicia no dia 1º de cada mês.",
   },
   {
     q: "Preciso de mais análises ou quero dar feedback.",
-    a: "Escreva para guilhermemachado@hubstry.onmicrosoft.com. O feedback dos usuários do beta orienta as próximas versões.",
+    a: `Escreva para ${CONTATO}.`,
   },
 ];
 
-function BetaPricing({ isAuthenticated, onStart }: { isAuthenticated: boolean; onStart: () => void }) {
+function PlanoGratuito({ isAuthenticated, onStart }: { isAuthenticated: boolean; onStart: () => void }) {
   return (
     <div className="hb-sans min-h-screen" style={{ background: HB.ink, color: HB.text }}>
       <SiteHeader />
       <main className="max-w-6xl mx-auto px-6 pt-16">
-        <h1 className="hb-display font-bold leading-[1.05] text-4xl sm:text-5xl">{BETA_LABEL}</h1>
+        <h1 className="hb-display font-bold leading-[1.05] text-4xl sm:text-5xl">Gratuito</h1>
         <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
-          {BETA_CONVITE_PUBLICO
-            ? "O Hubstry Compliance está em beta. Durante esta fase, o uso é gratuito e os planos pagos estão suspensos."
-            : "O Hubstry Compliance está em beta fechado, com participantes convidados. Durante esta fase, o uso é gratuito e os planos pagos estão suspensos."}
+          O Hubstry Compliance é gratuito. Não há planos pagos nem cobrança.
         </p>
 
         <div className="mt-12 max-w-md rounded-lg p-7 flex flex-col border" style={{ borderColor: HB.cyan }}>
-          <h2 className="text-base font-semibold" style={{ color: HB.muted }}>{BETA_LABEL}</h2>
+          <h2 className="text-base font-semibold" style={{ color: HB.muted }}>Plano gratuito</h2>
           <p className="mt-3">
             <span className="hb-display text-3xl font-bold">R$ 0</span>
-            <span style={{ color: HB.muted }}> durante o beta</span>
           </p>
           <ul className="mt-6 space-y-2.5 text-[15px] flex-1">
-            {BETA_ITEMS.map((item) => (
+            {ITENS_GRATUITOS.map((item) => (
               <li key={item} className="flex items-center gap-3">
                 <Dot color={HB.cyan} className="opacity-70" />
                 {item}
@@ -234,20 +223,16 @@ function BetaPricing({ isAuthenticated, onStart }: { isAuthenticated: boolean; o
           <button
             className="hb-focus mt-8 py-3 rounded-md font-medium border"
             style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
-            onClick={() =>
-              isAuthenticated || BETA_CONVITE_PUBLICO
-                ? onStart()
-                : (window.location.href = `mailto:${BETA_CONTATO}?subject=Convite%20para%20o%20beta%20do%20Hubstry%20Compliance`)
-            }
+            onClick={onStart}
           >
-            {isAuthenticated ? "Ir para o painel" : BETA_CONVITE_PUBLICO ? "Participar do beta" : "Solicitar convite"}
+            {isAuthenticated ? "Ir para o painel" : "Começar grátis"}
           </button>
         </div>
 
         <section className="mt-20 max-w-3xl" aria-labelledby="faq">
           <h2 id="faq" className="hb-display text-2xl font-semibold">Perguntas frequentes</h2>
           <dl className="mt-8 space-y-8">
-            {BETA_FAQ.map((item) => (
+            {FAQ_GRATUITO.map((item) => (
               <div key={item.q}>
                 <dt className="font-semibold">{item.q}</dt>
                 <dd className="mt-2 leading-relaxed" style={{ color: HB.muted }}>{item.a}</dd>

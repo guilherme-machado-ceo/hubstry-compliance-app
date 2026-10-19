@@ -27,12 +27,11 @@ import * as db from "./db.js";
 import { scanUrl } from "./scanner.js";
 import { appRouter } from "./routers.js";
 import {
-  BETA_CHECKOUT_MESSAGE,
-  BETA_CONVITE_PUBLICO,
-  BETA_GRATUITO,
-  BETA_SCANS_PER_MONTH,
+  CHECKOUT_DESATIVADO_MENSAGEM,
+  COBRANCA_CONGELADA,
+  COTA_MENSAL_GRATUITA,
   effectiveScansPerMonth,
-} from "../_shared/beta.js";
+} from "../_shared/gratuito.js";
 import type { TrpcContext } from "./_core/context.js";
 
 const user = {
@@ -65,24 +64,20 @@ beforeEach(() => {
   });
 });
 
-describe("fase de beta gratuito (ADR-0012)", () => {
-  it("está ativa", () => {
-    expect(BETA_GRATUITO).toBe(true);
+describe("app gratuito com cobrança congelada (ADR-0012)", () => {
+  it("cobrança está congelada", () => {
+    expect(COBRANCA_CONGELADA).toBe(true);
   });
 
-  it("cota do beta é generosa, mas finita", () => {
-    expect(BETA_SCANS_PER_MONTH).toBeGreaterThan(5);
-    expect(BETA_SCANS_PER_MONTH).toBeLessThan(500);
-    expect(Number.isFinite(BETA_SCANS_PER_MONTH)).toBe(true);
+  it("cota gratuita é generosa, mas finita", () => {
+    expect(COTA_MENSAL_GRATUITA).toBeGreaterThan(5);
+    expect(COTA_MENSAL_GRATUITA).toBeLessThan(500);
+    expect(Number.isFinite(COTA_MENSAL_GRATUITA)).toBe(true);
   });
 
-  it("convite público fica desligado até a decisão de hospedagem", () => {
-    expect(BETA_CONVITE_PUBLICO).toBe(false);
-  });
-
-  it("toda conta gratuita tem exatamente a cota finita do beta, qualquer que seja o valor no banco", () => {
+  it("toda conta gratuita tem exatamente a cota gratuita finita, qualquer que seja o valor no banco", () => {
     for (const stored of [5, 0, 1000, -1]) {
-      expect(effectiveScansPerMonth("free", stored), `armazenado ${stored}`).toBe(BETA_SCANS_PER_MONTH);
+      expect(effectiveScansPerMonth("free", stored), `armazenado ${stored}`).toBe(COTA_MENSAL_GRATUITA);
     }
   });
 
@@ -96,18 +91,18 @@ describe("checkout desabilitado no servidor", () => {
   it.each(["PRO", "ENTERPRISE"] as const)("createCheckout(%s) é recusado sem chamar o Stripe", async (plan) => {
     await expect(caller().stripe.createCheckout({ plan })).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: BETA_CHECKOUT_MESSAGE,
+      message: CHECKOUT_DESATIVADO_MENSAGEM,
     });
     expect(checkoutCreate).not.toHaveBeenCalled();
   });
 });
 
 describe("cota efetiva nas leituras e no limite", () => {
-  it("subscription.get e stripe.getSubscription devolvem a cota do beta", async () => {
+  it("subscription.get e stripe.getSubscription devolvem a cota gratuita", async () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue(freeRow(0) as never);
-    await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: BETA_SCANS_PER_MONTH });
+    await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: COTA_MENSAL_GRATUITA });
     await expect(caller().stripe.getSubscription()).resolves.toMatchObject({
-      scansPerMonth: BETA_SCANS_PER_MONTH,
+      scansPerMonth: COTA_MENSAL_GRATUITA,
     });
   });
 
@@ -118,21 +113,21 @@ describe("cota efetiva nas leituras e no limite", () => {
     expect(db.createAudit).toHaveBeenCalled();
   });
 
-  it("conta gratuita com -1 (ilimitado) no banco é limitada à cota do beta", async () => {
+  it("conta gratuita com -1 (ilimitado) no banco é limitada à cota gratuita", async () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue({
       plan: "free",
       scansPerMonth: -1,
-      scansUsedThisMonth: BETA_SCANS_PER_MONTH,
+      scansUsedThisMonth: COTA_MENSAL_GRATUITA,
     } as never);
-    await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: BETA_SCANS_PER_MONTH });
+    await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: COTA_MENSAL_GRATUITA });
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
     });
     expect(db.createAudit).not.toHaveBeenCalled();
   });
 
-  it("audits.create bloqueia ao atingir a cota do beta", async () => {
-    vi.mocked(db.getOrCreateSubscription).mockResolvedValue(freeRow(BETA_SCANS_PER_MONTH) as never);
+  it("audits.create bloqueia ao atingir a cota gratuita", async () => {
+    vi.mocked(db.getOrCreateSubscription).mockResolvedValue(freeRow(COTA_MENSAL_GRATUITA) as never);
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
     });

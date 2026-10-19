@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "../_shared/const.js";
-import { withBetaQuota } from "../_shared/beta.js";
+import { withCotaGratuita } from "../_shared/gratuito.js";
 import { ECA_PILLARS } from "../_shared/pillars.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { clearCookieRaw } from "./_core/express5-compat.js";
@@ -29,7 +29,7 @@ export const appRouter = router({
 
   subscription: router({
     get: protectedProcedure.query(async ({ ctx }) => {
-      return withBetaQuota(await db.getOrCreateSubscription(ctx.user.id));
+      return withCotaGratuita(await db.getOrCreateSubscription(ctx.user.id));
     }),
   }),
 
@@ -44,7 +44,7 @@ export const appRouter = router({
       .input(z.object({ url: z.string().url() }))
       .mutation(async ({ ctx, input }) => {
         // Check subscription limits (-1 means unlimited)
-        const subscription = withBetaQuota(
+        const subscription = withCotaGratuita(
           await db.getOrCreateSubscription(ctx.user.id),
         );
         const isUnlimited = subscription.scansPerMonth === -1;
