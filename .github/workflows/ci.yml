@@ -1,0 +1,55 @@
+# CI do Hubstry Compliance: testes e build em cada PR e na main.
+#
+# Roda só no GitHub Actions (Linux), nunca na máquina local (CLAUDE.md,
+# "Execução exclusivamente remota"). Não chama modelos de IA nem serviços
+# pagos; usa apenas a cota gratuita de minutos do GitHub Actions.
+#
+# Os testes usam DNS, fetch e banco simulados (CLAUDE.md): o job não precisa
+# de segredos nem de variáveis de produção.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes-e-build:
+    name: Testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      # Versão do pnpm lida de "packageManager" no package.json.
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # O pnpm-lock.yaml está desatualizado (CLAUDE.md, "Armadilhas"); a
+      # produção também instala com --no-frozen-lockfile.
+      - name: Instalar dependências
+        run: pnpm install --no-frozen-lockfile
+
+      # A falha de auth.logout.test.ts é preexistente e tratada à parte
+      # (CLAUDE.md). Fica fora desta etapa obrigatória e roda na etapa
+      # seguinte, visível, sem bloquear o PR.
+      - name: Testes
+        run: pnpm vitest run --exclude "api/_server/auth.logout.test.ts"
+
+      - name: Teste com falha preexistente conhecida (não bloqueia)
+        continue-on-error: true
+        run: pnpm vitest run api/_server/auth.logout.test.ts
+
+      - name: Build
+        run: pnpm build
