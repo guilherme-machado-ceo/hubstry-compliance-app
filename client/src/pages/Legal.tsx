@@ -169,8 +169,7 @@ export function Privacidade() {
           armazenado. Se a página analisada contiver dados pessoais de terceiros, eles não são guardados.
         </p>
         <p>
-          [CONFIRMAR: o site carrega um script de analytics herdado do template inicial. Remover o script antes do
-          lançamento ou descrevê-lo aqui, com fornecedor e finalidade.]
+          <strong>Analytics:</strong> o site não usa ferramentas de analytics nem carrega scripts de terceiros.
         </p>
       </section>
 
