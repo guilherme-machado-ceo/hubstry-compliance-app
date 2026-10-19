@@ -5,7 +5,7 @@ Formato e processo: [ADR-0001](0001-registrar-decisoes-em-adrs.md). Modelo: [000
 | ADR | Decisão | Status |
 |---|---|---|
 | [0001](0001-registrar-decisoes-em-adrs.md) | Registrar decisões em ADRs | Aceito |
-| [0002](0002-hospedagem-na-vercel.md) | Manter a hospedagem na Vercel | Aceito |
+| [0002](0002-hospedagem-na-vercel.md) | Manter a hospedagem na Vercel | Aceito (condição de revisão substituída pelo ADR-0012) |
 | [0003](0003-funcoes-serverless-esm.md) | Convenções das funções serverless em ESM | Aceito |
 | [0004](0004-motor-de-scan-deterministico.md) | Motor de scan determinístico | Aceito |
 | [0005](0005-niveis-de-evidencia-e-linguagem.md) | Níveis de evidência e linguagem dos achados | Aceito (persistência: Proposto; "indícios não reduzem o score": não implementado) |
@@ -15,6 +15,7 @@ Formato e processo: [ADR-0001](0001-registrar-decisoes-em-adrs.md). Modelo: [000
 | [0009](0009-segredos-e-variaveis-de-ambiente.md) | Gestão de segredos e variáveis de ambiente | Aceito (cron fail-closed: implementado no PR-5, em validação) |
 | [0010](0010-marca-e-selo-nvidia-inception.md) | Marca Hubstry e selo NVIDIA Inception (selo em páginas institucionais) | Aceito |
 | [0011](0011-dados-de-auditoria-e-html.md) | Tratamento do HTML analisado e retenção | Aceito (retenção de `completed`: implementada no PR-5, em validação; `failed`/`pending`: Proposto) |
+| [0012](0012-app-gratuito-na-vercel-hobby.md) | Manter o app gratuito na Vercel Hobby e congelar a cobrança | Aceito |
 
 ## Decisões pendentes (ainda sem ADR)
 - Remover o script de analytics herdado do template (`analytics.manus.im`) e demais sobras do template.
@@ -22,4 +23,3 @@ Formato e processo: [ADR-0001](0001-registrar-decisoes-em-adrs.md). Modelo: [000
 - Remoção definitiva do modo demo / bypass de autenticação.
 - Pilar "Consentimento e Acessibilidade" mistura temas distintos no score.
 - Onde mora o Radar Regulatório (Hubstry ou Lexiograph).
-- Plano Vercel Hobby → Pro.
