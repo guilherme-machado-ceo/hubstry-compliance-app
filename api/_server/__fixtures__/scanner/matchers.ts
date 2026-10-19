@@ -13,7 +13,7 @@ export type FindingCategory =
   | "ausencia_banner_consentimento";
 
 const MATCHERS: Record<FindingCategory, (v: ViolationDetail) => boolean> = {
-  // Hoje: "Verificacao de Idade Ausente", disparada quando a página é
+  // Hoje: achado "age_verification" (severidade info), disparado quando a página é
   // classificada como direcionada a menores.
   publico_infantojuvenil: (v) => v.type === "age_verification",
   roach_motel: (v) => v.type === "dark_pattern" && /roach motel/i.test(v.title),
