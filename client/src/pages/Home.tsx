@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { useLocation } from "wouter";
-import { BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
+import { BETA_CONTATO, BETA_CONVITE_PUBLICO, BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
 
 const COVERAGE = [
   "Padrões de design manipulativo",
@@ -81,16 +81,26 @@ export default function Home() {
               <button
                 className="hb-focus px-6 py-3.5 rounded-md text-base font-semibold text-black"
                 style={{ background: HB.cyan }}
-                onClick={login}
+                onClick={() =>
+                  isAuthenticated || !BETA_GRATUITO || BETA_CONVITE_PUBLICO
+                    ? login()
+                    : (window.location.href = `mailto:${BETA_CONTATO}?subject=Convite%20para%20o%20beta%20do%20Hubstry%20Compliance`)
+                }
               >
-                {isAuthenticated ? "Fazer uma análise" : "Analisar meu site grátis"}
+                {isAuthenticated
+                  ? "Fazer uma análise"
+                  : BETA_GRATUITO && !BETA_CONVITE_PUBLICO
+                    ? "Solicitar convite para o beta"
+                    : "Analisar meu site grátis"}
               </button>
               <button className="hb-focus text-base underline underline-offset-4 hover:text-white" style={{ color: HB.muted }} onClick={() => navigate("/pricing")}>
-                Ver planos
+                {BETA_GRATUITO ? "Sobre o beta" : "Ver planos"}
               </button>
             </div>
             <p className="mt-5 text-sm" style={{ color: HB.muted }}>
-              5 análises gratuitas por mês. Sem cartão de crédito.
+              {BETA_GRATUITO
+                ? `${BETA_CONVITE_PUBLICO ? "Beta gratuito" : "Beta fechado, por convite"}: ${BETA_SCANS_PER_MONTH} análises por mês. Sem cartão de crédito.`
+                : "5 análises gratuitas por mês. Sem cartão de crédito."}
             </p>
           </div>
 
@@ -157,15 +167,20 @@ export default function Home() {
           <section className="max-w-6xl mx-auto px-6" aria-labelledby="beta">
             <h2 id="beta" className="hb-display text-2xl sm:text-3xl font-semibold">{BETA_LABEL}</h2>
             <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
-              Durante o beta, o uso é gratuito: {BETA_SCANS_PER_MONTH} análises por mês, todos os temas da análise e
-              relatório com recomendações. Sem cartão de crédito.
+              {BETA_CONVITE_PUBLICO ? "Durante o beta" : "No beta fechado, com participantes convidados"}, o uso é
+              gratuito: {BETA_SCANS_PER_MONTH} análises por mês, todos os temas da análise e relatório com
+              recomendações. Sem cartão de crédito.
             </p>
             <button
               className="hb-focus mt-8 px-6 py-3 rounded-md font-medium border"
               style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
-              onClick={login}
+              onClick={() =>
+                isAuthenticated || BETA_CONVITE_PUBLICO
+                  ? login()
+                  : (window.location.href = `mailto:${BETA_CONTATO}?subject=Convite%20para%20o%20beta%20do%20Hubstry%20Compliance`)
+              }
             >
-              {isAuthenticated ? "Ir para o painel" : "Participar do beta"}
+              {isAuthenticated ? "Ir para o painel" : BETA_CONVITE_PUBLICO ? "Participar do beta" : "Solicitar convite"}
             </button>
           </section>
         )}

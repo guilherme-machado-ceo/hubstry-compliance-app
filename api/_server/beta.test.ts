@@ -23,6 +23,7 @@ import { scanUrl } from "./scanner.js";
 import { appRouter } from "./routers.js";
 import {
   BETA_CHECKOUT_MESSAGE,
+  BETA_CONVITE_PUBLICO,
   BETA_GRATUITO,
   BETA_SCANS_PER_MONTH,
   effectiveScansPerMonth,
@@ -70,10 +71,17 @@ describe("fase de beta gratuito (ADR-0012)", () => {
     expect(Number.isFinite(BETA_SCANS_PER_MONTH)).toBe(true);
   });
 
-  it("aplica a cota do beta só ao plano gratuito, sem reduzir cotas maiores", () => {
-    expect(effectiveScansPerMonth("free", 5)).toBe(BETA_SCANS_PER_MONTH);
-    expect(effectiveScansPerMonth("free", 1000)).toBe(1000);
-    expect(effectiveScansPerMonth("free", -1)).toBe(-1);
+  it("convite público fica desligado até a decisão de hospedagem", () => {
+    expect(BETA_CONVITE_PUBLICO).toBe(false);
+  });
+
+  it("toda conta gratuita tem exatamente a cota finita do beta, qualquer que seja o valor no banco", () => {
+    for (const stored of [5, 0, 1000, -1]) {
+      expect(effectiveScansPerMonth("free", stored), `armazenado ${stored}`).toBe(BETA_SCANS_PER_MONTH);
+    }
+  });
+
+  it("planos pagos já contratados mantêm a própria cota", () => {
     expect(effectiveScansPerMonth("pro", 500)).toBe(500);
     expect(effectiveScansPerMonth("enterprise", -1)).toBe(-1);
   });
@@ -103,6 +111,19 @@ describe("cota efetiva nas leituras e no limite", () => {
     vi.mocked(db.createAudit).mockResolvedValue({ insertId: 1 });
     await caller().audits.create({ url: "https://example.com/" });
     expect(db.createAudit).toHaveBeenCalled();
+  });
+
+  it("conta gratuita com -1 (ilimitado) no banco é limitada à cota do beta", async () => {
+    vi.mocked(db.getOrCreateSubscription).mockResolvedValue({
+      plan: "free",
+      scansPerMonth: -1,
+      scansUsedThisMonth: BETA_SCANS_PER_MONTH,
+    } as never);
+    await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: BETA_SCANS_PER_MONTH });
+    await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toMatchObject({
+      code: "TOO_MANY_REQUESTS",
+    });
+    expect(db.createAudit).not.toHaveBeenCalled();
   });
 
   it("audits.create bloqueia ao atingir a cota do beta", async () => {

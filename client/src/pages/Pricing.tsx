@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { Dot, HB, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { toast } from "sonner";
-import { BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
+import { BETA_CONTATO, BETA_CONVITE_PUBLICO, BETA_GRATUITO, BETA_LABEL, BETA_SCANS_PER_MONTH } from "@shared/beta";
 
 export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
@@ -181,7 +181,15 @@ const BETA_ITEMS = [
 const BETA_FAQ = [
   {
     q: "O que é o beta gratuito?",
-    a: "Uma fase de validação do produto. Todas as contas usam a mesma análise, sem custo, com uma cota mensal de análises.",
+    a: BETA_CONVITE_PUBLICO
+      ? "Uma fase de validação do produto. Todas as contas usam a mesma análise, sem custo, com uma cota mensal de análises."
+      : "Uma fase de validação do produto, por enquanto fechada e com participantes convidados. Quem participa usa a mesma análise, sem custo, com uma cota mensal de análises.",
+  },
+  {
+    q: "Como participo?",
+    a: BETA_CONVITE_PUBLICO
+      ? "Entre com sua conta do GitHub e comece a analisar."
+      : `Peça um convite pelo e-mail ${BETA_CONTATO}.`,
   },
   {
     q: "Vou ser cobrado depois?",
@@ -204,7 +212,9 @@ function BetaPricing({ isAuthenticated, onStart }: { isAuthenticated: boolean; o
       <main className="max-w-6xl mx-auto px-6 pt-16">
         <h1 className="hb-display font-bold leading-[1.05] text-4xl sm:text-5xl">{BETA_LABEL}</h1>
         <p className="mt-4 text-lg max-w-[60ch]" style={{ color: HB.muted }}>
-          O Hubstry Compliance está em beta. Durante esta fase, o uso é gratuito e os planos pagos estão suspensos.
+          {BETA_CONVITE_PUBLICO
+            ? "O Hubstry Compliance está em beta. Durante esta fase, o uso é gratuito e os planos pagos estão suspensos."
+            : "O Hubstry Compliance está em beta fechado, com participantes convidados. Durante esta fase, o uso é gratuito e os planos pagos estão suspensos."}
         </p>
 
         <div className="mt-12 max-w-md rounded-lg p-7 flex flex-col border" style={{ borderColor: HB.cyan }}>
@@ -224,9 +234,13 @@ function BetaPricing({ isAuthenticated, onStart }: { isAuthenticated: boolean; o
           <button
             className="hb-focus mt-8 py-3 rounded-md font-medium border"
             style={{ background: HB.cyan, color: "#000", borderColor: HB.cyan }}
-            onClick={onStart}
+            onClick={() =>
+              isAuthenticated || BETA_CONVITE_PUBLICO
+                ? onStart()
+                : (window.location.href = `mailto:${BETA_CONTATO}?subject=Convite%20para%20o%20beta%20do%20Hubstry%20Compliance`)
+            }
           >
-            {isAuthenticated ? "Ir para o painel" : "Participar do beta"}
+            {isAuthenticated ? "Ir para o painel" : BETA_CONVITE_PUBLICO ? "Participar do beta" : "Solicitar convite"}
           </button>
         </div>
 

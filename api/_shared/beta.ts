@@ -16,17 +16,28 @@ export const BETA_SCANS_PER_MONTH = 30;
 
 export const BETA_LABEL = "Beta gratuito";
 
+/**
+ * Convite publico ao beta. Desligado ate a decisao de hospedagem (ADR-0012):
+ * enquanto isso, o beta e fechado, com acesso externo so em testes
+ * controlados, e a interface pede convite por e-mail em vez de convidar.
+ * Isto muda apenas a comunicacao; nao e controle de acesso (o login continua
+ * aberto como hoje na `main`).
+ */
+export const BETA_CONVITE_PUBLICO = false;
+
+export const BETA_CONTATO = "guilhermemachado@hubstry.onmicrosoft.com";
+
 export const BETA_CHECKOUT_MESSAGE =
   "Os planos pagos estão suspensos durante o beta gratuito. Nenhuma cobrança é feita.";
 
 /**
- * Cota efetiva do plano. No beta, o plano gratuito recebe a cota do beta;
- * planos pagos ja existentes mantem a sua (-1 = ilimitado).
+ * Cota efetiva do plano. No beta, TODA conta gratuita recebe exatamente a
+ * cota do beta, que e finita, mesmo que o banco guarde outro valor (inclusive
+ * -1, ilimitado). Planos pagos ja contratados mantem a sua.
  */
 export function effectiveScansPerMonth(plan: string, storedScansPerMonth: number): number {
   if (!BETA_GRATUITO || plan !== "free") return storedScansPerMonth;
-  if (storedScansPerMonth === -1) return -1;
-  return Math.max(storedScansPerMonth, BETA_SCANS_PER_MONTH);
+  return BETA_SCANS_PER_MONTH;
 }
 
 /** Assinatura com a cota efetiva aplicada (usar em toda leitura da cota). */
