@@ -7,7 +7,7 @@ vi.mock("./db.js", () => ({
   createViolation: vi.fn(),
   updateAuditIfPending: vi.fn(),
   deleteAuditViolations: vi.fn(),
-  incrementScansUsed: vi.fn(),
+  countQuotaAudits: vi.fn(),
   failStalePendingAudits: vi.fn(),
   getUserAudits: vi.fn(),
   getAuditById: vi.fn(),
@@ -43,6 +43,7 @@ beforeEach(() => {
     scansUsedThisMonth: 0,
   } as never);
   vi.mocked(db.createAudit).mockResolvedValue({ insertId: 42 });
+  vi.mocked(db.countQuotaAudits).mockResolvedValue(0);
 });
 
 describe("audits.create", () => {
@@ -61,7 +62,6 @@ describe("audits.create", () => {
 
     expect(result).toEqual({ auditId: 42, status: "completed" });
     expect(db.updateAuditIfPending).toHaveBeenCalledWith(42, expect.objectContaining({ status: "completed" }));
-    expect(db.incrementScansUsed).toHaveBeenCalledWith(7);
   });
 
   it("falha do scan devolve `failed` já gravado, nunca `pending`", async () => {
@@ -77,7 +77,7 @@ describe("audits.create", () => {
     });
   });
 
-  it("estado final não confirmado (gravação e leitura falham) devolve `pending`, sem contar a cota", async () => {
+  it("estado final não confirmado (gravação e leitura falham) devolve `pending`", async () => {
     vi.mocked(scanUrl).mockResolvedValue({
       complianceScore: 100,
       summary: { critical: 0, warning: 0, info: 0 },
@@ -90,7 +90,6 @@ describe("audits.create", () => {
     const result = await caller().audits.create({ url: "https://example.com/" });
 
     expect(result).toEqual({ auditId: 42, status: "pending" });
-    expect(db.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("sem id da auditoria criada, responde erro e não escaneia", async () => {
@@ -104,8 +103,9 @@ describe("audits.create", () => {
   it("limite do plano atingido não cria auditoria", async () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue({
       scansPerMonth: 3,
-      scansUsedThisMonth: 3,
+      scansUsedThisMonth: 0,
     } as never);
+    vi.mocked(db.countQuotaAudits).mockResolvedValue(3);
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toThrow(/Limite/);
     expect(db.createAudit).not.toHaveBeenCalled();
   });
