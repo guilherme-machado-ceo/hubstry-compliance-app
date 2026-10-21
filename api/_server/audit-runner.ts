@@ -16,10 +16,11 @@ import { scanUrl, type ScanResult } from "./scanner.js";
  * - As transicoes finais (`completed`/`failed`) so valem a partir de
  *   `pending` (db.updateAuditIfPending): a primeira gravada prevalece e uma
  *   escrita atrasada nao sobrescreve o estado final.
- * - O resultado e a contagem da cota se baseiam em estado CONFIRMADO: a
+ * - O resultado se baseia em estado CONFIRMADO: a
  *   propria transicao aplicada (linha afetada) ou, se nenhuma foi confirmada,
  *   a leitura do banco. Sem confirmacao, o resultado e `pending`: nao afirma
- *   conclusao nem falha, nao conta a cota e nao apaga achados.
+ *   conclusao nem falha e nao apaga achados. A cota nao e contada aqui:
+ *   deriva das proprias auditorias (quota.ts).
  * - Auditoria que termina `failed` tem os achados parciais removidos (melhor
  *   esforco); a leitura so expoe achados de auditorias `completed`.
  * - O que escapar disso (funcao encerrada pela plataforma, banco indisponivel)
@@ -55,7 +56,6 @@ export interface AuditRunnerDeps {
   updateAuditIfPending: typeof db.updateAuditIfPending;
   deleteAuditViolations: typeof db.deleteAuditViolations;
   getAuditById: (auditId: number) => Promise<{ status: string } | undefined>;
-  incrementScansUsed: typeof db.incrementScansUsed;
 }
 
 const defaultDeps: AuditRunnerDeps = {
@@ -64,7 +64,6 @@ const defaultDeps: AuditRunnerDeps = {
   updateAuditIfPending: db.updateAuditIfPending,
   deleteAuditViolations: db.deleteAuditViolations,
   getAuditById: db.getAuditById,
-  incrementScansUsed: db.incrementScansUsed,
 };
 
 class AuditTimeoutError extends Error {
@@ -81,7 +80,7 @@ export async function runAudit(
   deps: AuditRunnerDeps = defaultDeps,
   deadlineMs: number = SCAN_DEADLINE_MS,
 ): Promise<AuditOutcome> {
-  const { auditId, userId, url } = params;
+  const { auditId, url } = params;
   const deadlineAt = Date.now() + deadlineMs;
   // Depois do prazo, nenhuma escrita comeca. O relogio cobre o caso em que
   // codigo sincrono atrasou o disparo do timer.
@@ -150,14 +149,9 @@ export async function runAudit(
 
   const outcome = await confirmOutcome(auditId, deps, completedApplied, failedApplied);
 
-  if (outcome === "completed") {
-    // Conta o scan so com conclusao confirmada. Falha aqui nao desfaz o resultado.
-    try {
-      await deps.incrementScansUsed(userId);
-    } catch (error) {
-      console.error(`[audit ${auditId}] falha ao contar o scan:`, error);
-    }
-  } else if (outcome === "failed") {
+  // A cota nao e contada aqui: ela deriva das proprias auditorias
+  // (quota.ts), entao nao ha passo de contagem que possa falhar.
+  if (outcome === "failed") {
     // Remove achados parciais. Uma insercao ja em voo pode chegar depois
     // desta limpeza; por isso a leitura so expoe achados de `completed`.
     try {

@@ -74,6 +74,8 @@ export function SiteFooter() {
             <a className="hb-focus hover:text-white" href="/sobre">Sobre a Hubstry</a>
             <a className="hb-focus hover:text-white" href="/pricing">Planos</a>
             <a className="hb-focus hover:text-white" href="mailto:guilhermemachado@hubstry.onmicrosoft.com">Contato</a>
+            <a className="hb-focus hover:text-white" href="/termos">Termos de Uso</a>
+            <a className="hb-focus hover:text-white" href="/privacidade">Política de Privacidade</a>
             <a className="hb-focus hover:text-white" href="https://hubstry.dev" target="_blank" rel="noopener">hubstry.dev</a>
           </nav>
           <p className="text-xs" style={{ color: HB.muted }}>© 2026 Hubstry Deep Tech</p>

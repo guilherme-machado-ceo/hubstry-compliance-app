@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { CHECKOUT_DESATIVADO_MENSAGEM, COBRANCA_CONGELADA, withCotaGratuita } from "../_shared/gratuito.js";
 import { protectedProcedure, router } from "./_core/trpc.js";
+import { withUsoDoMes } from "./quota.js";
 import { z } from "zod";
 import Stripe from "stripe";
 import { STRIPE_PRODUCTS } from "./stripe-products.js";
@@ -66,7 +67,7 @@ export const stripeRouter = router({
     const subscription = await db.getOrCreateSubscription(
       ctx.user.id,
     );
-    return withCotaGratuita(subscription);
+    return withUsoDoMes(withCotaGratuita(subscription), ctx.user.id);
   }),
 
   // Get payment history

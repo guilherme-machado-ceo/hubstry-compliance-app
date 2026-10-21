@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 // Import MySQL schema for TypeScript types (canonical type source)
 import type { Audit, InsertUser, User, Violation } from "../../drizzle/schema.js";
 import * as mysqlSchema from "../../drizzle/schema.js";
@@ -152,6 +152,34 @@ export async function getUserByOpenId(
     .where(eq(users.openId, openId))
     .limit(1);
   return result.length > 0 ? (result[0] as User) : undefined;
+}
+
+/**
+ * Analises que contam na cota mensal: auditorias do usuario criadas desde
+ * `since` com status `completed` ou `pending` (a pendente reserva a vaga
+ * enquanto roda; `failed` nao conta). E a fonte da contagem da cota: derivada
+ * das proprias auditorias, nao de um contador separado, ela nao diverge por
+ * repeticao, timeout ou falha parcial (quota.ts).
+ */
+export async function countQuotaAudits(
+  userId: number,
+  since: Date,
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { audits } = _schema;
+  const rows = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(audits)
+    .where(
+      and(
+        eq(audits.userId, userId),
+        gte(audits.createdAt, since),
+        inArray(audits.status, ["completed", "pending"]),
+      ),
+    );
+  return Number(rows[0]?.n ?? 0);
 }
 
 export async function getOrCreateSubscription(userId: number) {
@@ -446,29 +474,41 @@ export async function deleteUserData(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const { audits, violations, reports, subscriptions } = _schema;
+  const { audits, violations, reports, subscriptions, users } = _schema;
 
-  // Busca IDs das auditorias do usuario
-  const userAudits = await db
-    .select({ id: audits.id })
-    .from(audits)
-    .where(eq(audits.userId, userId));
+  // Tudo ou nada: numa transacao, uma falha em qualquer etapa desfaz as
+  // anteriores, e a conta nao fica parcialmente apagada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.transaction(async (tx: any) => {
+    // Busca IDs das auditorias do usuario
+    const userAudits = await tx
+      .select({ id: audits.id })
+      .from(audits)
+      .where(eq(audits.userId, userId));
 
-  const auditIds = userAudits.map(
-    (row: { id: number }) => row.id,
-  );
+    const auditIds = userAudits.map(
+      (row: { id: number }) => row.id,
+    );
 
-  // Remove violacoes de todas as auditorias
-  for (const auditId of auditIds) {
-    await db.delete(violations).where(eq(violations.auditId, auditId));
-    await db.delete(reports).where(eq(reports.auditId, auditId));
-  }
+    // Remove violacoes e relatorios de todas as auditorias
+    for (const auditId of auditIds) {
+      await tx.delete(violations).where(eq(violations.auditId, auditId));
+      await tx.delete(reports).where(eq(reports.auditId, auditId));
+    }
 
-  // Remove auditorias
-  await db.delete(audits).where(eq(audits.userId, userId));
+    // Remove auditorias
+    await tx.delete(audits).where(eq(audits.userId, userId));
 
-  // Remove assinatura
-  await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+    // Remove relatorios ligados ao usuario por userId (alem dos por auditoria)
+    await tx.delete(reports).where(eq(reports.userId, userId));
+
+    // Remove assinatura
+    await tx.delete(subscriptions).where(eq(subscriptions.userId, userId));
+
+    // Remove o proprio cadastro (nome, e-mail, identificador do GitHub, datas).
+    // Sem ele, a sessao existente deixa de autenticar (sdk.authenticateRequest).
+    await tx.delete(users).where(eq(users.id, userId));
+  });
 
   console.log(
     `[LGPD] Todos os dados do usuario ${userId} foram excluidos (esquecimento completo)`,
