@@ -60,7 +60,7 @@ guilhermemachado@hubstry.onmicrosoft.com.
 |---|---|
 | HTML das páginas analisadas | Processado em memória e descartado; não é armazenado. |
 | Retenção de auditorias concluídas (90 dias) | Código e agendamento implementados (cron diário, PR #18); operação em produção ainda em validação. Auditorias `failed`/`pending` não entram nessa regra (decisão pendente, [ADR-0011](docs/adr/0011-dados-de-auditoria-e-html.md)). |
-| Exclusão de dados pelo titular | Os endpoints existem (`audits.delete`, `gdpr.deleteAccount`), mas ainda não há interface no app. Até lá, a exclusão é atendida pelo e-mail acima. |
+| Exclusão de dados pelo titular | Pela interface, na página `/conta` (confirmação digitando `EXCLUIR`), que apaga numa transação as auditorias, os relatórios e o próprio cadastro (PR #28). O pedido também pode ser feito pelo e-mail acima. |
 
 ---
 
