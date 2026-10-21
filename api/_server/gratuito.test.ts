@@ -13,7 +13,7 @@ vi.mock("./db.js", () => ({
   createAudit: vi.fn(),
   createViolation: vi.fn(),
   updateAudit: vi.fn(),
-  incrementScansUsed: vi.fn(),
+  countQuotaAudits: vi.fn(),
   failStalePendingAudits: vi.fn(),
   // Usadas pelo audit-runner do PR #26; incluídas para a suíte funcionar
   // também depois da integração dos dois PRs.
@@ -57,6 +57,7 @@ const freeRow = (used: number) => ({ plan: "free", scansPerMonth: 5, scansUsedTh
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(db.countQuotaAudits).mockResolvedValue(0);
   vi.mocked(scanUrl).mockResolvedValue({
     complianceScore: 100,
     summary: { critical: 0, warning: 0, info: 0 },
@@ -100,6 +101,7 @@ describe("checkout desabilitado no servidor", () => {
 describe("cota efetiva nas leituras e no limite", () => {
   it("subscription.get e stripe.getSubscription devolvem a cota gratuita", async () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue(freeRow(0) as never);
+    vi.mocked(db.countQuotaAudits).mockResolvedValue(0);
     await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: COTA_MENSAL_GRATUITA });
     await expect(caller().stripe.getSubscription()).resolves.toMatchObject({
       scansPerMonth: COTA_MENSAL_GRATUITA,
@@ -108,6 +110,7 @@ describe("cota efetiva nas leituras e no limite", () => {
 
   it("audits.create permite passar do antigo limite de 5", async () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue(freeRow(5) as never);
+    vi.mocked(db.countQuotaAudits).mockResolvedValue(5);
     vi.mocked(db.createAudit).mockResolvedValue({ insertId: 1 });
     await caller().audits.create({ url: "https://example.com/" });
     expect(db.createAudit).toHaveBeenCalled();
@@ -117,8 +120,9 @@ describe("cota efetiva nas leituras e no limite", () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue({
       plan: "free",
       scansPerMonth: -1,
-      scansUsedThisMonth: COTA_MENSAL_GRATUITA,
+      scansUsedThisMonth: 0,
     } as never);
+    vi.mocked(db.countQuotaAudits).mockResolvedValue(COTA_MENSAL_GRATUITA);
     await expect(caller().subscription.get()).resolves.toMatchObject({ scansPerMonth: COTA_MENSAL_GRATUITA });
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
@@ -128,6 +132,7 @@ describe("cota efetiva nas leituras e no limite", () => {
 
   it("audits.create bloqueia ao atingir a cota gratuita", async () => {
     vi.mocked(db.getOrCreateSubscription).mockResolvedValue(freeRow(COTA_MENSAL_GRATUITA) as never);
+    vi.mocked(db.countQuotaAudits).mockResolvedValue(COTA_MENSAL_GRATUITA);
     await expect(caller().audits.create({ url: "https://example.com/" })).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
     });

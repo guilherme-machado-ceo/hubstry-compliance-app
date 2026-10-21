@@ -37,16 +37,19 @@ Essa é a organização própria do produto para a triagem, não uma lista ofici
 da lei. A revisão das regras do motor (níveis de evidência, redução de falsos
 positivos) está em andamento — ver o [roadmap](docs/ROADMAP.md).
 
-### Planos
+### Uso gratuito
 
-| | Free | Pro | Enterprise |
-|---|---|---|---|
-| Preço | R$ 0 | R$ 99/mês | R$ 299/mês |
-| Análises por mês | 5 | 500 | ilimitadas |
-| Exportação em PDF | — | em breve | em breve |
-| Suporte | — | e-mail | prioritário por e-mail |
+O app é gratuito ([ADR-0012](docs/adr/0012-app-gratuito-na-vercel-hobby.md)):
+não há planos pagos nem cobrança, e não é pedido cartão de crédito. Basta
+entrar com uma conta do GitHub.
 
-Cancelamento e troca de plano: enquanto não há fluxo no painel, pelo e-mail
+| | |
+|---|---|
+| Preço | R$ 0 |
+| Análises por mês | 30 por conta; o saldo reinicia no dia 1º de cada mês |
+| Cobrança | desativada; o código de pagamento está congelado, não removido |
+
+Dúvidas, feedback ou necessidade de mais análises: pelo e-mail
 guilhermemachado@hubstry.onmicrosoft.com.
 
 ---
@@ -57,7 +60,7 @@ guilhermemachado@hubstry.onmicrosoft.com.
 |---|---|
 | HTML das páginas analisadas | Processado em memória e descartado; não é armazenado. |
 | Retenção de auditorias concluídas (90 dias) | Código e agendamento implementados (cron diário, PR #18); operação em produção ainda em validação. Auditorias `failed`/`pending` não entram nessa regra (decisão pendente, [ADR-0011](docs/adr/0011-dados-de-auditoria-e-html.md)). |
-| Exclusão de dados pelo titular | Os endpoints existem (`audits.delete`, `gdpr.deleteAccount`), mas ainda não há interface no app. Até lá, a exclusão é atendida pelo e-mail acima. |
+| Exclusão de dados pelo titular | Pela interface, na página `/conta` (confirmação digitando `EXCLUIR`), que apaga numa transação as auditorias, os relatórios e o próprio cadastro (PR #28). O pedido também pode ser feito pelo e-mail acima. |
 
 ---
 
@@ -106,7 +109,8 @@ Para testar o login real com GitHub OAuth, consulte
 
 - **Stack:** React 19, Vite, Tailwind CSS 4 e shadcn/ui no frontend; tRPC 11
   e Drizzle ORM no backend, em funções serverless na Vercel; banco
-  Turso/libsql em produção e SQLite em desenvolvimento; Stripe; login com
+  Turso/libsql em produção e SQLite em desenvolvimento; Stripe (congelado,
+  checkout desativado); login com
   GitHub OAuth.
 - **Decisões de arquitetura:** [`docs/adr/`](docs/adr/README.md).
 - **Prioridades:** [`docs/ROADMAP.md`](docs/ROADMAP.md).

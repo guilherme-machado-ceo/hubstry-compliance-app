@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import AuditDetail from "./pages/AuditDetail";
 import Pricing from "./pages/Pricing";
 import Sobre from "./pages/Sobre";
+import Conta from "./pages/Conta";
+import { Privacidade, Termos } from "./pages/Legal";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -18,6 +20,9 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/sobre"} component={Sobre} />
+      <Route path={"/termos"} component={Termos} />
+      <Route path={"/privacidade"} component={Privacidade} />
+      <Route path={"/conta"} component={Conta} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/audit/:id"} component={AuditDetail} />
       <Route path={"/404"} component={NotFound} />
