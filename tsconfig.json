@@ -10,16 +10,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "baseUrl": ".",
+    // Mesmos aliases do vite.config.ts (fonte de verdade da resolucao).
     "paths": {
       "@/*": ["./client/src/*"],
-      "@/app/*": ["./app/*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/types/*": ["./types/*"],
-      "@/utils/*": ["./utils/*"],
-      "@/prisma/*": ["./prisma/*"],
-      "@shared/*": ["./api/_shared/*"]
+      "@shared/*": ["./api/_shared/*"],
+      "@assets/*": ["./attached_assets/*"]
     },
 
     // Emissão
