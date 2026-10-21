@@ -9,6 +9,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc.js";
 import { z } from "zod";
 import * as db from "./db.js";
 import { runAudit, STALE_MESSAGE, STALE_PENDING_MS } from "./audit-runner.js";
+import { inicioDoMesUtc, withUsoDoMes } from "./quota.js";
 import { stripeRouter } from "./stripe-router.js";
 
 /** Fecha auditorias `pending` sem execucao viva antes de lê-las. */
@@ -38,7 +39,10 @@ export const appRouter = router({
 
   subscription: router({
     get: protectedProcedure.query(async ({ ctx }) => {
-      return withCotaGratuita(await db.getOrCreateSubscription(ctx.user.id));
+      return withUsoDoMes(
+        withCotaGratuita(await db.getOrCreateSubscription(ctx.user.id)),
+        ctx.user.id,
+      );
     }),
   }),
 
@@ -53,9 +57,13 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({ url: z.string().url() }))
       .mutation(async ({ ctx, input }) => {
-        // Check subscription limits (-1 means unlimited)
-        const subscription = withCotaGratuita(
-          await db.getOrCreateSubscription(ctx.user.id),
+        // Limite do plano (-1 = ilimitado). O uso do mes vem das proprias
+        // auditorias (quota.ts); pendencias antigas sao fechadas antes para
+        // nao reservarem vaga.
+        await closeStalePending(ctx.user.id);
+        const subscription = await withUsoDoMes(
+          withCotaGratuita(await db.getOrCreateSubscription(ctx.user.id)),
+          ctx.user.id,
         );
         const isUnlimited = subscription.scansPerMonth === -1;
         if (
@@ -87,6 +95,24 @@ export const appRouter = router({
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Não foi possível registrar a auditoria. Tente novamente.",
+          });
+        }
+
+        // A auditoria `pending` recem-criada ja reserva a vaga. Requisicoes
+        // simultaneas podem ter passado juntas pela verificacao acima, entao
+        // a contagem e refeita incluindo esta reserva: quem passou do limite
+        // desfaz a propria reserva e e recusado. Na disputa pela ultima vaga,
+        // todas podem ser recusadas, mas o limite nunca e ultrapassado.
+        if (
+          !isUnlimited &&
+          (await db.countQuotaAudits(ctx.user.id, inicioDoMesUtc())) >
+            subscription.scansPerMonth
+        ) {
+          await db.deleteAudit(auditId, ctx.user.id);
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message:
+              "Limite de análises do mês atingido. O saldo reinicia no dia 1º.",
           });
         }
 

@@ -46,7 +46,6 @@ interface FakeOptions {
   failCompletedWrite?: boolean;
   failFailedWrite?: boolean;
   failRead?: boolean;
-  failIncrement?: boolean;
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -86,9 +85,6 @@ function makeFake(opts: FakeOptions = {}) {
       if (opts.failRead) throw new Error("leitura falhou");
       return { status: row["status"] as string };
     }),
-    incrementScansUsed: vi.fn(async () => {
-      if (opts.failIncrement) throw new Error("db");
-    }),
   };
 
   return {
@@ -109,7 +105,7 @@ afterEach(() => {
 });
 
 describe("runAudit — conclusão", () => {
-  it("grava achados e o resultado antes de retornar, e conta o scan", async () => {
+  it("grava achados e o resultado antes de retornar", async () => {
     const f = makeFake();
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("completed");
 
@@ -127,24 +123,16 @@ describe("runAudit — conclusão", () => {
       infoViolations: 1,
     });
     expect(f.violations()).toBe(2);
-    expect(f.deps.incrementScansUsed).toHaveBeenCalledWith(7);
     expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
-  });
-
-  it("falha ao contar o scan não desfaz o resultado concluído", async () => {
-    const f = makeFake({ failIncrement: true });
-    await expect(runAudit(PARAMS, f.deps)).resolves.toBe("completed");
-    expect(f.row["status"]).toBe("completed");
   });
 });
 
 describe("runAudit — falha", () => {
-  it("erro do scan vira `failed` com a mensagem, sem contar o scan", async () => {
+  it("erro do scan vira `failed` com a mensagem", async () => {
     const f = makeFake({ scan: () => Promise.reject(new Error("URL aponta para endereco nao permitido")) });
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("failed");
     expect(f.row).toMatchObject({ status: "failed", errorMessage: "URL aponta para endereco nao permitido" });
     expect(f.deps.createViolation).not.toHaveBeenCalled();
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("erro ao gravar um achado vira `failed` e remove os achados parciais", async () => {
@@ -153,7 +141,6 @@ describe("runAudit — falha", () => {
     expect(f.row["status"]).toBe("failed");
     expect(f.deps.deleteAuditViolations).toHaveBeenCalledWith(42);
     expect(f.violations()).toBe(0);
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("erro ao gravar o resultado final vira `failed`", async () => {
@@ -177,11 +164,10 @@ describe("runAudit — falha", () => {
     expect(f.row["errorMessage"]).toBe("Erro desconhecido");
   });
 
-  it("conclusão confirmada pela própria gravação: conta a cota sem depender da leitura", async () => {
+  it("conclusão confirmada pela própria gravação dispensa a leitura", async () => {
     const f = makeFake({ failRead: true });
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("completed");
     expect(f.deps.getAuditById).not.toHaveBeenCalled();
-    expect(f.deps.incrementScansUsed).toHaveBeenCalledTimes(1);
   });
 
   it("falha confirmada pela própria gravação: limpa achados sem depender da leitura", async () => {
@@ -189,23 +175,20 @@ describe("runAudit — falha", () => {
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("failed");
     expect(f.deps.getAuditById).not.toHaveBeenCalled();
     expect(f.deps.deleteAuditViolations).toHaveBeenCalledWith(42);
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
-  it("nada confirmado (gravações e leitura falham): `pending`, sem contar a cota nem apagar achados", async () => {
+  it("nada confirmado (gravações e leitura falham): `pending`, sem apagar achados", async () => {
     const f = makeFake({ failCompletedWrite: true, failFailedWrite: true, failRead: true });
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("pending");
     expect(f.row["status"]).toBe("pending");
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
     expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("nenhuma gravação confirmada, mas a leitura confirma `completed`: conta uma vez", async () => {
+  it("nenhuma gravação confirmada, mas a leitura confirma `completed`", async () => {
     const f = makeFake({ failFailedWrite: true, failCompletedWrite: true });
     f.row["status"] = "completed"; // concluída por esta execução, sem resposta da escrita
     await expect(runAudit(PARAMS, f.deps)).resolves.toBe("completed");
-    expect(f.deps.incrementScansUsed).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -224,7 +207,6 @@ describe("runAudit — prazo", () => {
     await vi.runAllTimersAsync();
     expect(f.deps.createViolation).not.toHaveBeenCalled();
     expect(f.history).toEqual(["failed:aplicado"]);
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("prazo vencido durante a gravação dos achados: nenhum `completed` e achados limpos", async () => {
@@ -258,7 +240,6 @@ describe("runAudit — prazo", () => {
     await vi.runAllTimersAsync(); // a escrita tardia chega
     expect(f.history).toEqual(["failed:aplicado", "completed:ignorado"]);
     expect(f.row).toMatchObject({ status: "failed", errorMessage: TIMEOUT_MESSAGE });
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("corrida: `completed` aplicado ANTES do `failed` prevalece e a resposta é `completed`", async () => {
@@ -278,7 +259,6 @@ describe("runAudit — prazo", () => {
     expect(f.row["status"]).toBe("completed");
     expect(f.violations()).toBe(2); // relatório concluído mantém os achados
     expect(f.deps.deleteAuditViolations).not.toHaveBeenCalled();
-    expect(f.deps.incrementScansUsed).toHaveBeenCalledTimes(1);
   });
 
   it("análise síncrona que passa do prazo sem o timer disparar: nenhuma escrita começa", async () => {
@@ -297,7 +277,6 @@ describe("runAudit — prazo", () => {
     expect(f.deps.createViolation).not.toHaveBeenCalled();
     expect(f.history).toEqual(["failed:aplicado"]);
     expect(f.row).toMatchObject({ status: "failed", errorMessage: TIMEOUT_MESSAGE });
-    expect(f.deps.incrementScansUsed).not.toHaveBeenCalled();
   });
 
   it("scan dentro do prazo conclui normalmente", async () => {
