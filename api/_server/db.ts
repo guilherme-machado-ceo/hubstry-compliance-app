@@ -474,29 +474,41 @@ export async function deleteUserData(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const { audits, violations, reports, subscriptions } = _schema;
+  const { audits, violations, reports, subscriptions, users } = _schema;
 
-  // Busca IDs das auditorias do usuario
-  const userAudits = await db
-    .select({ id: audits.id })
-    .from(audits)
-    .where(eq(audits.userId, userId));
+  // Tudo ou nada: numa transacao, uma falha em qualquer etapa desfaz as
+  // anteriores, e a conta nao fica parcialmente apagada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.transaction(async (tx: any) => {
+    // Busca IDs das auditorias do usuario
+    const userAudits = await tx
+      .select({ id: audits.id })
+      .from(audits)
+      .where(eq(audits.userId, userId));
 
-  const auditIds = userAudits.map(
-    (row: { id: number }) => row.id,
-  );
+    const auditIds = userAudits.map(
+      (row: { id: number }) => row.id,
+    );
 
-  // Remove violacoes de todas as auditorias
-  for (const auditId of auditIds) {
-    await db.delete(violations).where(eq(violations.auditId, auditId));
-    await db.delete(reports).where(eq(reports.auditId, auditId));
-  }
+    // Remove violacoes e relatorios de todas as auditorias
+    for (const auditId of auditIds) {
+      await tx.delete(violations).where(eq(violations.auditId, auditId));
+      await tx.delete(reports).where(eq(reports.auditId, auditId));
+    }
 
-  // Remove auditorias
-  await db.delete(audits).where(eq(audits.userId, userId));
+    // Remove auditorias
+    await tx.delete(audits).where(eq(audits.userId, userId));
 
-  // Remove assinatura
-  await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+    // Remove relatorios ligados ao usuario por userId (alem dos por auditoria)
+    await tx.delete(reports).where(eq(reports.userId, userId));
+
+    // Remove assinatura
+    await tx.delete(subscriptions).where(eq(subscriptions.userId, userId));
+
+    // Remove o proprio cadastro (nome, e-mail, identificador do GitHub, datas).
+    // Sem ele, a sessao existente deixa de autenticar (sdk.authenticateRequest).
+    await tx.delete(users).where(eq(users.id, userId));
+  });
 
   console.log(
     `[LGPD] Todos os dados do usuario ${userId} foram excluidos (esquecimento completo)`,
