@@ -9,8 +9,8 @@
 
 <p align="center">
   Triagem automática de sites frente ao ECA Digital (Lei 15.211/2025) e à LGPD.<br>
-  <a href="https://hubstry-compliance-app.vercel.app">Abrir o app</a> ·
-  <a href="https://hubstry-compliance-app.vercel.app/sobre">Sobre a Hubstry</a>
+  <a href="https://compliance-app.hubstry.dev">Abrir o app</a> ·
+  <a href="https://compliance-app.hubstry.dev/sobre">Sobre a Hubstry</a>
 </p>
 
 ---
@@ -124,7 +124,7 @@ A Hubstry é um operating deep tech venture builder focado em pesquisa,
 desenvolvimento e criação de ativos tecnológicos proprietários. Em síntese,
 transforma incerteza tecnológica em vantagem competitiva estruturada e de
 longo prazo. O posicionamento completo e o manifesto estão em
-[hubstry-compliance-app.vercel.app/sobre](https://hubstry-compliance-app.vercel.app/sobre).
+[compliance-app.hubstry.dev/sobre](https://compliance-app.hubstry.dev/sobre).
 
 <p>
   <img src="client/public/brand/nvidia-inception-program-badge-rgb-for-screen.svg"
